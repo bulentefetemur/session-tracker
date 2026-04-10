@@ -358,8 +358,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const reg = await navigator.serviceWorker.ready;
             await reg.showNotification(title, {
                 body: body,
-                icon: "./icon-192.png",
-                badge: "./icon-192.png",
+                    icon: "./session_tracker.png",
+                    badge: "./session_tracker.png",
                 vibrate: [200, 100, 200]
             });
         } catch (e) {
