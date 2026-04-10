@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA Meta Etiketleri -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-title" content="Tracker">
+    
+    <!-- Apple İkonu (Manifestten Önce Olmalı) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="./icon-192.png">
+    <link rel="manifest" href="./manifest.json">
+    
+    <title>Session Tracker</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div id="https-warning" style="display:none; background:#FF3B30; color:white; padding:16px; text-align:center; font-weight:600; position:absolute; top:0; left:0; width:100%; z-index:9999; padding-top: env(safe-area-inset-top);">
+        HATA: Bildirimler için HTTPS gereklidir!
+    </div>
+
+    <div id="app" class="theme-dark">
+        <!-- KURULUM EKRANI (Idle State) -->
+        <section id="setup-screen" class="screen active">
+            <div class="header">
+                <h1>Hedef Belirle</h1>
+                <p class="subtitle">Çalışma süreni planla</p>
+            </div>
+            
+            <div class="time-picker-container">
+                <div class="picker-highlight"></div>
+                <div class="picker-group">
+                    <div class="picker-column" id="picker-hours"></div>
+                    <label>Saat</label>
+                </div>
+                <div class="picker-separator">:</div>
+                <div class="picker-group">
+                    <div class="picker-column" id="picker-minutes"></div>
+                    <label>Dk</label>
+                </div>
+                <div class="picker-separator">:</div>
+                <div class="picker-group">
+                    <div class="picker-column" id="picker-seconds"></div>
+                    <label>Sn</label>
+                </div>
+            </div>
+
+            <!-- Turuncu buton tamamen kaldırıldı -->
+            <button id="btn-start-session" class="btn-primary capsule">Oturumu Başlat</button>
+        </section>
+
+        <!-- AKTİF OTURUM EKRANI (Working / Resting State) -->
+        <section id="active-screen" class="screen hidden">
+            <div class="active-header">
+                <span class="target-label">Hedef: <span id="lbl-target-time">00:00</span></span>
+            </div>
+
+            <div class="center-focus">
+                <div id="progress-indicator" class="progress-pill">
+                    <span id="lbl-percentage">%0</span>
+                </div>
+                <h2 id="lbl-current-timer" class="massive-timer">00:00</h2>
+                <p id="lbl-current-state" class="state-text">Çalışıyor</p>
+            </div>
+
+            <div class="controls">
+                <button id="btn-toggle-state" class="btn-toggle capsule">Mola Ver</button>
+                <button id="btn-end-session" class="btn-secondary capsule">Çalışmayı Sonlandır</button>
+            </div>
+
+            <footer class="glass-footer">
+                <div class="stat-box">
+                    <span class="stat-title">Toplam Çalışma</span>
+                    <span id="stat-work-time" class="stat-value">00:00</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-box">
+                    <span class="stat-title">Toplam Mola</span>
+                    <span id="stat-rest-time" class="stat-value">00:00</span>
+                </div>
+            </footer>
+        </section>
+    </div>
+    <script src="./app.js"></script>
+    
+    <!-- Mobil Debug Paneli (Eruda) -->
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script>
+</body>
+</html>

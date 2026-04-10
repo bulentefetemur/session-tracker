@@ -1,0 +1,8 @@
+.DS_Store
+node_modules/
+.env
+*.log
+*.agent.md
+AI_md/
+venv/
+__pycache__/
