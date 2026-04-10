@@ -15,307 +15,308 @@
     <meta name="apple-mobile-web-app-title" content="Tracker">
 
 <title>Session Tracker</title>
-    <style>
-        /* Temel Değişkenler ve Sıfırlama */
-        :root {
-            --bg-color: #000000;
-            --text-primary: #FFFFFF;
-            --text-secondary: #EBEBF599;
-            --glass-bg: rgba(44, 44, 46, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --dynamic-color: #FF3B30; 
-        }
+<style>
+    /* Temel Değişkenler ve Sıfırlama */
+    :root {
+        --bg-color: #000000;
+        --text-primary: #FFFFFF;
+        --text-secondary: #EBEBF599;
+        --glass-bg: rgba(44, 44, 46, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.1);
+        --dynamic-color: #FF3B30;
+    }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        -webkit-tap-highlight-color: transparent;
+    }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+    body {
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
 
-        #app {
-            width: 100%;
-            max-width: 430px;
-            height: 100%;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-        }
+    #app {
+        width: 100%;
+        max-width: 430px;
+        height: 100%;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
 
-        /* Ekran Geçişleri */
-        .screen {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            padding: env(safe-area-inset-top) 24px env(safe-area-inset-bottom) 24px;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
+    /* Ekran Geçişleri */
+    .screen {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        padding: env(safe-area-inset-top) 24px env(safe-area-inset-bottom) 24px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
 
-        .screen.active {
-            opacity: 1;
-            pointer-events: all;
-            z-index: 10;
-        }
+    .screen.active {
+        opacity: 1;
+        pointer-events: all;
+        z-index: 10;
+    }
 
-        .screen.hidden {
-            z-index: 1;
-        }
+    .screen.hidden {
+        z-index: 1;
+    }
 
-        /* KURULUM EKRANI (Setup) */
-        #setup-screen {
-            justify-content: center;
-            align-items: center;
-            gap: 40px;
-        }
+    /* KURULUM EKRANI (Setup) */
+    #setup-screen {
+        justify-content: center;
+        align-items: center;
+        gap: 40px;
+    }
 
-        .header {
-            text-align: center;
-        }
+    .header {
+        text-align: center;
+    }
 
-        .header h1 {
-            font-size: 34px;
-            font-weight: 700;
-            letter-spacing: 0.37px;
-        }
+    .header h1 {
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: 0.37px;
+    }
 
-        .subtitle {
-            color: var(--text-secondary);
-            font-size: 17px;
-            margin-top: 8px;
-        }
+    .subtitle {
+        color: var(--text-secondary);
+        font-size: 17px;
+        margin-top: 8px;
+    }
 
-        .time-picker-container {
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: #1C1C1E;
-            padding: 16px 20px;
-            border-radius: 24px;
-            -webkit-mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 60%, transparent 95%);
-            mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 60%, transparent 95%);
-        }
+    .time-picker-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: #1C1C1E;
+        padding: 16px 20px;
+        border-radius: 24px;
+        -webkit-mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 60%, transparent 95%);
+        mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 60%, transparent 95%);
+    }
 
-        .picker-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            z-index: 2;
-        }
+    .picker-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 2;
+    }
 
-        .picker-column {
-            height: 150px;
-            width: 60px;
-            overflow-y: scroll;
-            scroll-snap-type: y mandatory;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-        }
+    .picker-column {
+        height: 150px;
+        width: 60px;
+        overflow-y: scroll;
+        scroll-snap-type: y mandatory;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
 
-        .picker-column::-webkit-scrollbar {
-            display: none;
-        }
+    .picker-column::-webkit-scrollbar {
+        display: none;
+    }
 
-        .picker-column::before,
-        .picker-column::after {
-            content: '';
-            display: block;
-            height: 50px;
-        }
+    .picker-column::before,
+    .picker-column::after {
+        content: '';
+        display: block;
+        height: 50px;
+    }
 
-        .picker-item {
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-primary);
-            font-size: 42px;
-            font-weight: 600;
-            scroll-snap-align: center;
-            font-variant-numeric: tabular-nums;
-        }
+    .picker-item {
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-primary);
+        font-size: 42px;
+        font-weight: 600;
+        scroll-snap-align: center;
+        font-variant-numeric: tabular-nums;
+    }
 
-        .picker-group label {
-            color: var(--text-secondary);
-            font-size: 15px;
-            font-weight: 500;
-        }
+    .picker-group label {
+        color: var(--text-secondary);
+        font-size: 15px;
+        font-weight: 500;
+    }
 
-        .picker-highlight {
-            position: absolute;
-            top: 50%;
-            left: 16px;
-            right: 16px;
-            height: 50px;
-            transform: translateY(-50%);
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            pointer-events: none;
-            z-index: 1;
-        }
+    .picker-highlight {
+        position: absolute;
+        top: 50%;
+        left: 16px;
+        right: 16px;
+        height: 50px;
+        transform: translateY(-50%);
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        pointer-events: none;
+        z-index: 1;
+    }
 
-        .picker-separator {
-            font-size: 48px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            z-index: 2;
-        }
+    .picker-separator {
+        font-size: 48px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        z-index: 2;
+    }
 
-        /* BUTONLAR (Capsule Form) */
-        .capsule {
-            border-radius: 9999px;
-            border: none;
-            font-size: 17px;
-            font-weight: 600;
-            padding: 18px 32px;
-            width: 100%;
-            cursor: pointer;
-            transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.3s ease;
-        }
+    /* BUTONLAR (Capsule Form) */
+    .capsule {
+        border-radius: 9999px;
+        border: none;
+        font-size: 17px;
+        font-weight: 600;
+        padding: 18px 32px;
+        width: 100%;
+        cursor: pointer;
+        transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.3s ease;
+    }
 
-        .capsule:active {
-            transform: scale(0.96);
-            opacity: 0.8;
-        }
+    .capsule:active {
+        transform: scale(0.96);
+        opacity: 0.8;
+    }
 
-        .btn-primary {
-            background-color: #FF9500; /* Altın rengi / Orange-dark detay */
-            color: #FFF;
-        }
+    .btn-primary {
+        background-color: #FF9500;
+        /* Altın rengi / Orange-dark detay */
+        color: #FFF;
+    }
 
-        .btn-toggle {
-            background-color: var(--dynamic-color);
-            color: #000;
-        }
+    .btn-toggle {
+        background-color: var(--dynamic-color);
+        color: #000;
+    }
 
-        .controls {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            width: 100%;
-            margin-bottom: 140px;
-        }
+    .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        width: 100%;
+        margin-bottom: 140px;
+    }
 
-        .btn-secondary {
-            background-color: #2C2C2E;
-            color: #FFFFFF;
-        }
+    .btn-secondary {
+        background-color: #2C2C2E;
+        color: #FFFFFF;
+    }
 
-        /* AKTİF EKRAN (Timer & Stats) */
-        #active-screen {
-            justify-content: space-between;
-        }
+    /* AKTİF EKRAN (Timer & Stats) */
+    #active-screen {
+        justify-content: space-between;
+    }
 
-        .active-header {
-            text-align: center;
-            padding-top: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 12px;
-        }
+    .active-header {
+        text-align: center;
+        padding-top: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+    }
 
-        .target-label {
-            background: #1C1C1E;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 15px;
-            font-weight: 500;
-            color: var(--text-secondary);
-        }
+    .target-label {
+        background: #1C1C1E;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
 
-        .center-focus {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 16px;
-            flex-grow: 1;
-            justify-content: center;
-        }
+    .center-focus {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        flex-grow: 1;
+        justify-content: center;
+    }
 
-        .progress-pill {
-            background: var(--dynamic-color);
-            color: #000;
-            padding: 6px 16px;
-            border-radius: 16px;
-            font-weight: 700;
-            font-size: 17px;
-            transition: background-color 0.3s ease;
-        }
+    .progress-pill {
+        background: var(--dynamic-color);
+        color: #000;
+        padding: 6px 16px;
+        border-radius: 16px;
+        font-weight: 700;
+        font-size: 17px;
+        transition: background-color 0.3s ease;
+    }
 
-        .massive-timer {
-            font-size: 80px;
-            font-weight: 200;
-            letter-spacing: -2px;
-            font-variant-numeric: tabular-nums;
-        }
+    .massive-timer {
+        font-size: 80px;
+        font-weight: 200;
+        letter-spacing: -2px;
+        font-variant-numeric: tabular-nums;
+    }
 
-        .state-text {
-            font-size: 20px;
-            font-weight: 500;
-            color: var(--dynamic-color);
-            transition: color 0.3s ease;
-        }
+    .state-text {
+        font-size: 20px;
+        font-weight: 500;
+        color: var(--dynamic-color);
+        transition: color 0.3s ease;
+    }
 
-        /* ALT KALICI İSTATİSTİKLER */
-        .glass-footer {
-            position: absolute;
-            bottom: env(safe-area-inset-bottom, 20px);
-            left: 20px;
-            right: 20px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 20px;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-        }
+    /* ALT KALICI İSTATİSTİKLER */
+    .glass-footer {
+        position: absolute;
+        bottom: env(safe-area-inset-bottom, 20px);
+        left: 20px;
+        right: 20px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 20px;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+    }
 
-        .stat-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            width: 45%;
-        }
+    .stat-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        width: 45%;
+    }
 
-        .stat-title {
-            font-size: 13px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
-        }
+    .stat-title {
+        font-size: 13px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
 
-        .stat-value {
-            font-size: 22px;
-            font-weight: 600;
-            font-variant-numeric: tabular-nums;
-        }
+    .stat-value {
+        font-size: 22px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
 
-        .stat-divider {
-            width: 1px;
-            height: 40px;
-            background: var(--glass-border);
-        }
-    </style>
+    .stat-divider {
+        width: 1px;
+        height: 40px;
+        background: var(--glass-border);
+    }
+</style>
 </head>
 
 <body>
@@ -429,7 +430,7 @@
             }
 
             load() {
-                return false; 
+                return false;
             }
 
             reset() {
@@ -474,7 +475,7 @@
 
                 if (this.state !== 'idle') {
                     currentPhaseElapsed = now - this.phaseStartTime;
-                    
+
                     if (this.state === 'working') {
                         currentWork += currentPhaseElapsed;
                     } else if (this.state === 'resting') {
@@ -483,7 +484,7 @@
                 }
 
                 const progressPercentage = this.targetMs > 0 ? (currentWork / this.targetMs) * 100 : 0;
-                
+
                 let justReachedTarget = false;
                 let triggerWork60 = false;
                 let triggerRest15 = false;
@@ -549,16 +550,16 @@
 
                 const setupScreen = document.getElementById('setup-screen');
                 const activeScreen = document.getElementById('active-screen');
-                
+
                 const btnStart = document.getElementById('btn-start-session');
                 const btnToggle = document.getElementById('btn-toggle-state');
                 const btnEnd = document.getElementById('btn-end-session');
-                
+
                 const lblTargetTime = document.getElementById('lbl-target-time');
                 const lblPercentage = document.getElementById('lbl-percentage');
                 const lblCurrentTimer = document.getElementById('lbl-current-timer');
                 const lblCurrentState = document.getElementById('lbl-current-state');
-                
+
                 const statWorkTime = document.getElementById('stat-work-time');
                 const statRestTime = document.getElementById('stat-rest-time');
 
@@ -625,7 +626,7 @@
                     return Math.round(column.scrollTop / itemHeight);
                 }
 
-                function savePickerState() {}
+                function savePickerState() { }
 
                 let scrollTimeout;
                 function handleScroll() {
@@ -705,7 +706,7 @@
                 btnToggle.addEventListener('click', () => {
                     try {
                         tracker.toggleState();
-                        
+
                         if (tracker.state === 'working') {
                             btnToggle.textContent = 'Mola Ver';
                             lblCurrentState.textContent = 'Çalışıyor';
@@ -715,13 +716,13 @@
                             lblCurrentState.textContent = 'Mola Veriliyor';
                             lblCurrentState.style.color = '#0A84FF';
                         }
-                    } catch(e) {
+                    } catch (e) {
                         alert("Toggle Error: " + e.message);
                     }
                 });
 
                 function handleSessionReset() {
-                    if(confirm("Mevcut oturumu bitirmek istediğinize emin misiniz?")) {
+                    if (confirm("Mevcut oturumu bitirmek istediğinize emin misiniz?")) {
                         tracker.reset();
                         clearInterval(renderInterval);
                         releaseWakeLock();
@@ -776,7 +777,7 @@
                             tracker.save();
                             tracker.lastSaveTime = currentTime;
                         }
-                    } catch(e) {
+                    } catch (e) {
                         console.error("UI Update Error:", e);
                     }
                 }
@@ -817,6 +818,7 @@
         }
     </script>
 </body>
+
 </html>
 </body>
 
