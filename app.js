@@ -365,19 +365,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (e) { console.warn("Ses çalınamadı", e); }
 
-        // 2. Web Notification (Service Worker Öncelikli Arka Plan Tetikleyicisi)
-        if ("Notification" in window && Notification.permission === "granted") {
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.ready.then((registration) => {
-                    registration.showNotification(title, {
-                        body: body,
-                        icon: "icon-192.png",
-                        vibrate: [200, 100, 200, 100, 400]
-                    });
+        // 2. Web Notification (Hiçbir yan şarta bakmadan doğrudan SW üzerinden ateşle)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then((registration) => {
+                registration.showNotification(title, {
+                    body: body,
+                    icon: "./icon-192.png",
+                    vibrate: [200, 100, 200, 100, 400]
                 });
-            }
-        } else if (navigator.vibrate) {
-            // 3. Titreşim (Destekleyen cihazlarda)
+            });
+        }
+        if (navigator.vibrate) {
             navigator.vibrate([200, 100, 200, 100, 400]);
         }
     }
