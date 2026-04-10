@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (e) { console.warn("Ses çalınamadı", e); }
 
-        // 2. Web Notification (Hiçbir yan şarta bakmadan doğrudan SW üzerinden ateşle)
+        // 2. Web Notification (Sadece Service Worker üzerinden doğrudan ateşle)
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.ready.then((registration) => {
                 registration.showNotification(title, {
@@ -374,9 +374,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     vibrate: [200, 100, 200, 100, 400]
                 });
             });
-        }
-        if (navigator.vibrate) {
-            navigator.vibrate([200, 100, 200, 100, 400]);
         }
     }
 

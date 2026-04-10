@@ -1,4 +1,4 @@
-const CACHE_NAME = 'session-tracker-v5-final';
+const CACHE_NAME = 'session-tracker-v6-rescue';
 const ASSETS = [
     './',
     './index.html',
