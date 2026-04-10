@@ -353,27 +353,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnEnd.addEventListener('click', handleSessionReset);
 
-    function fireNotification(title, body) {
-        // 1. Sentetik Sesli Uyarı (Beep) - Always On Kanalı Üzerinden
+    async function fireNotification(title, body) {
         try {
-            if (audioCtx && unlockedOsc && unlockedGain) {
-                unlockedOsc.frequency.setValueAtTime(880, audioCtx.currentTime); // La notası
-                unlockedGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                unlockedGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
-                // Sesi çaldıktan sonra kanalı tekrar uyku moduna (sessizliğe) al
-                unlockedGain.gain.setValueAtTime(0, audioCtx.currentTime + 1.6);
-            }
-        } catch (e) { console.warn("Ses çalınamadı", e); }
-
-        // 2. Web Notification (Sadece Service Worker üzerinden doğrudan ateşle)
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.ready.then((registration) => {
-                registration.showNotification(title, {
-                    body: body,
-                    icon: "./icon-192.png",
-                    vibrate: [200, 100, 200, 100, 400]
-                });
+            const reg = await navigator.serviceWorker.ready;
+            await reg.showNotification(title, {
+                body: body,
+                icon: "./icon-192.png",
+                badge: "./icon-192.png",
+                vibrate: [200, 100, 200]
             });
+        } catch (e) {
+            console.error("Bildirim hatası:", e);
         }
     }
 

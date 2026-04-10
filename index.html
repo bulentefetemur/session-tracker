@@ -2,6 +2,8 @@
 <html lang="tr">
 
 <head>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192.png">
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -12,15 +14,7 @@
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-title" content="Tracker">
 
-    <!-- Apple İkonu (Manifestten Önce Olmalı) -->
-    <link rel="apple-touch-icon" sizes="180x180" href="./icon-192.png">
-    <link rel="manifest" href="./manifest.json">
-
-    <title>Session Tracker</title>
-    <link rel="stylesheet" href="./styles.css">
-</head>
-
-<body>
+    <>
     <div id="https-warning"
         style="display:none; background:#FF3B30; color:white; padding:16px; text-align:center; font-weight:600; position:absolute; top:0; left:0; width:100%; z-index:9999; padding-top: env(safe-area-inset-top);">
         HATA: Bildirimler için HTTPS gereklidir!
