@@ -255,12 +255,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnStart.addEventListener('click', async () => {
         try {
-                // iOS Safari compliance: Requesting permission on user gesture
-                if (window.OneSignalDeferred) {
-                    window.OneSignalDeferred.push(async function(OneSignal) {
-                        console.log("OneSignal: Requesting permission via user gesture...");
-                        await OneSignal.Notifications.requestPermission();
-                    });
+                // iOS için en doğrudan tetikleme yöntemi
+                try {
+                    alert("Sinyal gönderildi!"); // Geçici hata ayıklama
+                    if (window.OneSignal && window.OneSignal.Notifications) {
+                        console.log("Direct permission request triggered...");
+                        window.OneSignal.Notifications.requestPermission();
+                    } else {
+                        // Eğer SDK henüz hazır değilse yedek olarak Deferred kullan
+                        window.OneSignalDeferred = window.OneSignalDeferred || [];
+                        window.OneSignalDeferred.push(function(OneSignal) {
+                            console.log("Deferred permission request triggered...");
+                            OneSignal.Notifications.requestPermission();
+                        });
+                    }
+                } catch (e) {
+                    console.error("OneSignal Permission Error:", e);
                 }
 
                 // --- AUDIO UNLOCK HACK (Sessiz Modu Delme) ---
