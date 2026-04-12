@@ -255,11 +255,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnStart.addEventListener('click', async () => {
         try {
-                // --- ONESIGNAL BİLDİRİM İZNİ ---
-                window.OneSignalDeferred = window.OneSignalDeferred || [];
-                window.OneSignalDeferred.push(async function(OneSignal) {
-                    await OneSignal.Notifications.requestPermission();
-                });
+                // iOS Safari compliance: Requesting permission on user gesture
+                if (window.OneSignalDeferred) {
+                    window.OneSignalDeferred.push(async function(OneSignal) {
+                        console.log("OneSignal: Requesting permission via user gesture...");
+                        await OneSignal.Notifications.requestPermission();
+                    });
+                }
 
                 // --- AUDIO UNLOCK HACK (Sessiz Modu Delme) ---
                 let silentAudio = document.getElementById('silent-unlock');
