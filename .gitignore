@@ -6,3 +6,6 @@ node_modules/
 AI_md/
 venv/
 __pycache__/
+dist/
+# Sadece yerel konfigürasyonları sakla
+config.private.json

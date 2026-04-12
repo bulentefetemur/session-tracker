@@ -255,19 +255,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnStart.addEventListener('click', async () => {
         try {
-                // --- OTOMATİK BİLDİRİM İZNİ (Butonsuz Onay) ---
-                if ("Notification" in window && Notification.permission === "default") {
-                    const isIPhone = /iPhone/i.test(navigator.userAgent);
-                    const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-
-                    if (isIPhone && !isHTTPS) {
-                        const warning = document.getElementById('https-warning');
-                        if (warning) warning.style.display = 'block';
-                        console.warn('HTTPS gereklidir.');
-                    } else {
-                        await window.Notification.requestPermission();
-                    }
-            }
+                // --- ONESIGNAL BİLDİRİM İZNİ ---
+                window.OneSignalDeferred = window.OneSignalDeferred || [];
+                window.OneSignalDeferred.push(async function(OneSignal) {
+                    await OneSignal.Notifications.requestPermission();
+                });
 
                 // --- AUDIO UNLOCK HACK (Sessiz Modu Delme) ---
                 let silentAudio = document.getElementById('silent-unlock');
@@ -362,6 +354,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     badge: "./session_tracker.png",
                 vibrate: [200, 100, 200]
             });
+            
+            // OneSignal API üzerinden Serverless push gönderim hazırlığı:
+            // if (window.OneSignal) {
+            //     // API Call proxy'ye yönlendirilecek
+            // }
         } catch (e) {
             console.error("Bildirim hatası:", e);
         }

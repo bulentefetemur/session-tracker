@@ -14,6 +14,17 @@
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-title" content="Tracker">
 
+<!-- OneSignal SDK Entegrasyonu -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "0955cb95-118c-43f0-a716-c7c476bf9c9e",
+    });
+  });
+</script>
+
 <title>Session Tracker</title>
 <style>
     /* Temel Değişkenler ve Sıfırlama */
@@ -640,19 +651,11 @@
 
                 btnStart.addEventListener('click', async () => {
                     try {
-                        // 1. Otomatik Bildirim İzni İsteme
-                        if ("Notification" in window && Notification.permission === "default") {
-                            const isIPhone = /iPhone/i.test(navigator.userAgent);
-                            const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-
-                            if (isIPhone && !isHTTPS) {
-                                const warning = document.getElementById('https-warning');
-                                if (warning) warning.style.display = 'block';
-                                console.warn('HTTPS gereklidir.');
-                            } else {
-                                await window.Notification.requestPermission();
-                            }
-                        }
+                        // 1. OneSignal Bildirim İzni İsteme
+                        window.OneSignalDeferred = window.OneSignalDeferred || [];
+                        window.OneSignalDeferred.push(async function(OneSignal) {
+                            await OneSignal.Notifications.requestPermission();
+                        });
 
                         // 2. Audio Unlock Hack (Sessiz Modu Delme)
                         let silentAudio = document.getElementById('silent-unlock');
@@ -744,6 +747,11 @@
                             badge: "./icon-192.png",
                             vibrate: [200, 100, 200]
                         });
+                        
+                        // OneSignal API üzerinden Serverless push gönderim hazırlığı:
+                        // if (window.OneSignal) {
+                        //     // API Call proxy'ye yönlendirilecek
+                        // }
                     } catch (e) {
                         console.error("Bildirim hatası:", e);
                     }
