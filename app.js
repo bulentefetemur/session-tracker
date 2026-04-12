@@ -300,15 +300,23 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (permission === 'granted') {
                                 window.OneSignalDeferred = window.OneSignalDeferred || [];
                                 window.OneSignalDeferred.push(async (instance) => {
-                                    // Cihazı aktif olarak OneSignal sistemine kaydet ve ID al
-                                    await instance.User.PushSubscription.optIn();
-                                    const pushId = instance.User.PushSubscription.id;
-                                    
-                                    // Debug için ekrana yazdır (Önceki debug div'ini kullan)
-                                    const debugDiv = document.getElementById('debug-status');
-                                    if (debugDiv) {
-                                        debugDiv.innerText = pushId ? 'Status: Registered! ID: ' + pushId : 'Status: Syncing...';
-                                        debugDiv.style.color = '#4CAF50';
+                                    try {
+                                        await instance.User.PushSubscription.optIn();
+                                        const pushId = instance.User.PushSubscription.id;
+                                        
+                                        const debugDiv = document.getElementById('debug-status');
+                                        if (debugDiv) {
+                                            if (pushId) {
+                                                debugDiv.innerText = 'Status: Registered! ID: ' + pushId.substring(0, 8) + '...';
+                                                debugDiv.style.color = '#4CAF50'; // Yeşil
+                                                console.log("OneSignal ID Success:", pushId);
+                                            } else {
+                                                debugDiv.innerText = 'Status: Ready (No ID yet)';
+                                                debugDiv.style.color = '#FFA500'; // Turuncu
+                                            }
+                                        }
+                                    } catch (err) {
+                                        console.error("OneSignal Sync Error:", err);
                                     }
                                 });
                             }
