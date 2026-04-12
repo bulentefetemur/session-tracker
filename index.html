@@ -24,19 +24,13 @@
       appId: "0955cb95-118c-43f0-a716-c7c476bf9c9e",
       serviceWorkerPath: 'OneSignalSDKWorker.js',
       serviceWorkerParam: { scope: '/' },
-      allowLocalhostAsSecureOrigin: true,
-      requiresUserPrivacyConsent: false
+      allowLocalhostAsSecureOrigin: true
     });
 
     // Abonelik durumundaki değişiklikleri canlı dinle
     OneSignal.User.PushSubscription.addEventListener("change", (event) => {
-        const pushId = event.current.id;
-        const debugDiv = document.getElementById('debug-status');
-        if (pushId && debugDiv) {
-            debugDiv.innerText = 'Status: Registered! ID: ' + pushId.substring(0, 8) + '...';
-            debugDiv.style.color = '#4CAF50';
-            console.log("OneSignal Live ID:", pushId);
-        }
+      const id = event.current.id;
+      document.getElementById('debug-status').innerText = id ? "ID: " + id.substring(0,8) : "Ready";
     });
   });
 </script>

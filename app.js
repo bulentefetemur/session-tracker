@@ -293,58 +293,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnStart.addEventListener('click', () => {
         try {
-                // 1. HİBRİT BİLDİRİM İZNİ (Güvenli Zincir - Service Worker Readiness)
-                if ('serviceWorker' in navigator && 'Notification' in window) {
-                    navigator.serviceWorker.ready.then(() => {
-                        Notification.requestPermission().then((permission) => {
-                            if (permission === 'granted') {
-                                window.OneSignalDeferred = window.OneSignalDeferred || [];
-                                window.OneSignalDeferred.push(async (instance) => {
-                                    try {
-                                        // İzin zaten varsa bile tekrar tetikle (Handshake tazeleme)
-                                        await instance.Notifications.requestPermission();
-                                        await instance.User.PushSubscription.optIn();
-                                        
-                                        // Aktif Takip (Polling) Mekanizması
-                                        let checkCount = 0;
-                                        const idCheckInterval = setInterval(async () => {
-                                            const pushId = instance.User.PushSubscription.id;
-                                            const debugDiv = document.getElementById('debug-status');
-                                            
-                                            if (pushId) {
-                                                if (debugDiv) {
-                                                    debugDiv.innerText = 'Status: Registered! ID: ' + pushId.substring(0, 8) + '...';
-                                                    debugDiv.style.color = '#4CAF50';
-                                                }
-                                                console.log("OneSignal ID Success (Polling):", pushId);
-                                                
-                                                // Toast Mesajı Göster
-                                                const toast = document.getElementById('toast-container');
-                                                if (toast) {
-                                                    toast.classList.add('show');
-                                                    setTimeout(() => toast.classList.remove('show'), 3000);
-                                                }
-                                                
-                                                // Welcome Push (Hoş Geldin Bildirimi)
-                                                fireNotification("Hoş Geldin! 🎉", "Bildirimler başarıyla aktifleştirildi.");
-                                                
-                                                clearInterval(idCheckInterval);
-                                            } else if (debugDiv && checkCount === 0) {
-                                                debugDiv.innerText = 'Status: Polling...';
-                                                debugDiv.style.color = '#FFA500';
-                                            }
-                                            
-                                            checkCount++;
-                                            if (checkCount > 10) clearInterval(idCheckInterval); // 20 saniye sonra bırak
-                                        }, 2000);
-                                    } catch (err) {
-                                        console.error("OneSignal Sync Error:", err);
-                                    }
-                                });
-                            }
-                        });
-                    });
-                }
+            if (window.Notification) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted' && window.OneSignal) {
+                        OneSignal.User.PushSubscription.optIn();
+                    }
+                });
+            }
 
                 // --- AUDIO UNLOCK HACK (Sessiz Modu Delme) ---
                 let silentAudio = document.getElementById('silent-unlock');
@@ -429,6 +384,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     btnEnd.addEventListener('click', handleSessionReset);
+
+    function showToast(message) {
+        const toast = document.getElementById('toast-container');
+        if (toast) {
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    }
 
     async function fireNotification(title, body) {
         try {
