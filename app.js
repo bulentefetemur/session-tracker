@@ -1,10 +1,3 @@
-let isOneSignalReady = false;
-window.OneSignalDeferred = window.OneSignalDeferred || [];
-window.OneSignalDeferred.push(function(OneSignal) {
-    isOneSignalReady = true;
-    console.log("OneSignal hazır ve nazır!");
-});
-
 class SessionTracker {
     constructor() {
         this.state = 'idle';
@@ -262,17 +255,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnStart.addEventListener('click', async () => {
         try {
-                // Çökmeyi engelleyen akıllı tetikleyici
-                if (typeof OneSignalDeferred !== 'undefined' && isOneSignalReady) {
-                    OneSignalDeferred.push(async function(OneSignal) {
+                // 1. Önce OneSignal'ın yüklenip yüklenmediğini kontrol et
+                const OneSignal = window.OneSignal || (window.OneSignalDeferred && window.OneSignalDeferred.push ? window.OneSignalDeferred : null);
+
+                if (OneSignal) {
+                    // v16 için güvenli erişim kuyruğu
+                    window.OneSignalDeferred = window.OneSignalDeferred || [];
+                    window.OneSignalDeferred.push(async (instance) => {
                         try {
-                            await OneSignal.Notifications.requestPermission();
-                        } catch (e) {
-                            console.warn("Bildirim isteği reddedildi veya hata oluştu:", e);
+                            // Sadece Notifications objesi varsa ilerle
+                            if (instance.Notifications) {
+                                await instance.Notifications.requestPermission();
+                            } else {
+                                console.error("OneSignal Notifications objesi henüz hazır değil.");
+                            }
+                        } catch (err) {
+                            console.error("Push izni istenirken hata:", err);
                         }
                     });
-                } else {
-                    console.log("OneSignal henüz yüklenmedi, bildirim isteği atlanıyor...");
                 }
 
                 // --- AUDIO UNLOCK HACK (Sessiz Modu Delme) ---
