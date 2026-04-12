@@ -293,17 +293,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnStart.addEventListener('click', () => {
         try {
-                // 1. HİBRİT BİLDİRİM İZNİ (Icebreaker - En tepede ve doğrudan senkron)
-                if ('Notification' in window) {
-                    Notification.requestPermission();
-                }
-
-                if (window.OneSignal && window.OneSignal.Notifications) {
-                    window.OneSignal.Notifications.requestPermission();
-                } else {
-                    window.OneSignalDeferred = window.OneSignalDeferred || [];
-                    window.OneSignalDeferred.push(function(OneSignal) {
-                        OneSignal.Notifications.requestPermission();
+                // 1. HİBRİT BİLDİRİM İZNİ (Güvenli Zincir - Service Worker Readiness)
+                if ('serviceWorker' in navigator && 'Notification' in window) {
+                    navigator.serviceWorker.ready.then(() => {
+                        Notification.requestPermission().then((permission) => {
+                            if (permission === 'granted') {
+                                if (window.OneSignal && window.OneSignal.Notifications) {
+                                    window.OneSignal.Notifications.requestPermission();
+                                } else {
+                                    window.OneSignalDeferred = window.OneSignalDeferred || [];
+                                    window.OneSignalDeferred.push(function(OneSignal) {
+                                        OneSignal.Notifications.requestPermission();
+                                    });
+                                }
+                            }
+                        });
                     });
                 }
 
