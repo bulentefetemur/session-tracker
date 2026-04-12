@@ -22,6 +22,9 @@
   OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({
       appId: "0955cb95-118c-43f0-a716-c7c476bf9c9e",
+      notifyButton: {
+        enable: true,
+      },
     });
   });
 </script>
@@ -652,22 +655,10 @@
 
                 btnStart.addEventListener('click', async () => {
                     try {
-                        // iOS için en doğrudan tetikleme yöntemi
-                        try {
-                            alert("Sinyal gönderildi!"); // Geçici hata ayıklama
-                            if (window.OneSignal && window.OneSignal.Notifications) {
-                                console.log("Direct permission request triggered...");
-                                window.OneSignal.Notifications.requestPermission();
-                            } else {
-                                // Eğer SDK henüz hazır değilse yedek olarak Deferred kullan
-                                window.OneSignalDeferred = window.OneSignalDeferred || [];
-                                window.OneSignalDeferred.push(function(OneSignal) {
-                                    console.log("Deferred permission request triggered...");
-                                    OneSignal.Notifications.requestPermission();
-                                });
-                            }
-                        } catch (e) {
-                            console.error("OneSignal Permission Error:", e);
+                        if (window.OneSignal) {
+                            OneSignal.Notifications.requestPermission().then(() => {
+                                console.log("Permission requested");
+                            });
                         }
 
                         // 2. Audio Unlock Hack (Sessiz Modu Delme)
