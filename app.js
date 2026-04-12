@@ -298,14 +298,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     navigator.serviceWorker.ready.then(() => {
                         Notification.requestPermission().then((permission) => {
                             if (permission === 'granted') {
-                                if (window.OneSignal && window.OneSignal.Notifications) {
-                                    window.OneSignal.Notifications.requestPermission();
-                                } else {
-                                    window.OneSignalDeferred = window.OneSignalDeferred || [];
-                                    window.OneSignalDeferred.push(function(OneSignal) {
-                                        OneSignal.Notifications.requestPermission();
-                                    });
-                                }
+                                window.OneSignalDeferred = window.OneSignalDeferred || [];
+                                window.OneSignalDeferred.push(async (instance) => {
+                                    // Cihazı aktif olarak OneSignal sistemine kaydet
+                                    await instance.User.PushSubscription.optIn(); 
+                                    const pushId = instance.User.PushSubscription.id;
+                                    console.log("SUCCESS! OneSignal Cihaz ID:", pushId);
+                                });
                             }
                         });
                     });
