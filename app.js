@@ -36,8 +36,23 @@ class SessionTracker {
     }
 
     load() {
-        // Kurtarma Operasyonu: LocalStorage iptal edildi, hep sıfırdan başla.
-        return false; 
+        const data = localStorage.getItem('sessionData');
+        if (data) {
+            try {
+                const parsed = JSON.parse(data);
+                this.state = parsed.state;
+                this.targetMs = parsed.targetMs;
+                this.totalWorkMs = parsed.totalWorkMs;
+                this.totalRestMs = parsed.totalRestMs;
+                this.phaseStartTime = parsed.phaseStartTime;
+                this.targetReached = parsed.targetReached;
+                return true;
+            } catch (e) {
+                console.error("Data parse error", e);
+                return false;
+            }
+        }
+        return false;
     }
 
     reset() {
@@ -253,9 +268,36 @@ document.addEventListener('DOMContentLoaded', () => {
     minutesColumn.addEventListener('scroll', handleScroll);
     secondsColumn.addEventListener('scroll', handleScroll);
 
-    btnStart.addEventListener('click', async () => {
+    // --- INIT (BAŞLANGIÇ YÜKLEMESİ VE HAFIZA RESTORASYONU) ---
+    if (tracker.load() && tracker.state !== 'idle') {
+        switchToActiveScreen();
+        
+        if (tracker.state === 'working') {
+            btnToggle.textContent = 'Mola Ver';
+            lblCurrentState.textContent = 'Çalışıyor';
+            lblCurrentState.style.color = 'var(--dynamic-color)';
+        } else if (tracker.state === 'resting') {
+            btnToggle.textContent = 'Çalışmaya Dön';
+            lblCurrentState.textContent = 'Mola Veriliyor';
+            lblCurrentState.style.color = '#0A84FF';
+        }
+
+        const totalSeconds = Math.floor(tracker.targetMs / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        lblTargetTime.textContent = `${hours > 0 ? hours + 'sa ' : ''}${minutes}dk ${seconds}sn`;
+
+        renderInterval = setInterval(updateUI, 100);
+    }
+
+    btnStart.addEventListener('click', () => {
         try {
-                // 1. BİLDİRİM İZNİ (En tepede ve doğrudan senkron)
+                // 1. HİBRİT BİLDİRİM İZNİ (Icebreaker - En tepede ve doğrudan senkron)
+                if ('Notification' in window) {
+                    Notification.requestPermission();
+                }
+
                 if (window.OneSignal && window.OneSignal.Notifications) {
                     window.OneSignal.Notifications.requestPermission();
                 } else {
@@ -408,34 +450,3 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error(e);
   }
 });
-
-// --- SERVICE WORKER KAYDI (Otomatik Güncelleme & PWA Desteği) ---
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', async () => {
-        try {
-            const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
-            console.log('Service Worker başarıyla kaydedildi. Kapsam:', reg.scope);
-
-            // Yeni sürüm tespiti (Update Alert Logic)
-            reg.addEventListener('updatefound', () => {
-                const newWorker = reg.installing;
-                newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        console.log('Yeni sürüm bulundu, sayfa otomatik yenileniyor...');
-                    }
-                });
-            });
-        } catch (err) {
-            console.warn('Service Worker kaydı başarısız:', err);
-        }
-    });
-
-    // Yeni SW kontrolü devraldığında sayfayı yenile (Immediate Takeover İşleyicisi)
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-            window.location.reload();
-            refreshing = true;
-        }
-    });
-}
