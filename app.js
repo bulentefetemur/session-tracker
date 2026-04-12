@@ -255,23 +255,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnStart.addEventListener('click', async () => {
         try {
-                // 1. Önce OneSignal'ın yüklenip yüklenmediğini kontrol et
-                const OneSignal = window.OneSignal || (window.OneSignalDeferred && window.OneSignalDeferred.push ? window.OneSignalDeferred : null);
-
-                if (OneSignal) {
-                    // v16 için güvenli erişim kuyruğu
+                // 1. BİLDİRİM İZNİ (En tepede ve doğrudan senkron)
+                if (window.OneSignal && window.OneSignal.Notifications) {
+                    window.OneSignal.Notifications.requestPermission();
+                } else {
                     window.OneSignalDeferred = window.OneSignalDeferred || [];
-                    window.OneSignalDeferred.push(async (instance) => {
-                        try {
-                            // Sadece Notifications objesi varsa ilerle
-                            if (instance.Notifications) {
-                                await instance.Notifications.requestPermission();
-                            } else {
-                                console.error("OneSignal Notifications objesi henüz hazır değil.");
-                            }
-                        } catch (err) {
-                            console.error("Push izni istenirken hata:", err);
-                        }
+                    window.OneSignalDeferred.push(function(OneSignal) {
+                        OneSignal.Notifications.requestPermission();
                     });
                 }
 

@@ -1,10 +1,10 @@
 {
-  "id": "./index.html",
+  "id": "/",
   "name": "Session Tracker",
   "short_name": "Tracker",
   "description": "Minimalist çalışma ve mola takipçisi.",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "gcm_sender_id": "482941778795",
   "background_color": "#000000",
