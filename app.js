@@ -304,19 +304,39 @@ document.addEventListener('DOMContentLoaded', () => {
                                         // İzin zaten varsa bile tekrar tetikle (Handshake tazeleme)
                                         await instance.Notifications.requestPermission();
                                         await instance.User.PushSubscription.optIn();
-                                        const pushId = instance.User.PushSubscription.id;
                                         
-                                        const debugDiv = document.getElementById('debug-status');
-                                        if (debugDiv) {
+                                        // Aktif Takip (Polling) Mekanizması
+                                        let checkCount = 0;
+                                        const idCheckInterval = setInterval(async () => {
+                                            const pushId = instance.User.PushSubscription.id;
+                                            const debugDiv = document.getElementById('debug-status');
+                                            
                                             if (pushId) {
-                                                debugDiv.innerText = 'Status: Registered! ID: ' + pushId.substring(0, 8) + '...';
-                                                debugDiv.style.color = '#4CAF50'; // Yeşil
-                                                console.log("OneSignal ID Success:", pushId);
-                                            } else {
-                                                debugDiv.innerText = 'Status: Ready (No ID yet)';
-                                                debugDiv.style.color = '#FFA500'; // Turuncu
+                                                if (debugDiv) {
+                                                    debugDiv.innerText = 'Status: Registered! ID: ' + pushId.substring(0, 8) + '...';
+                                                    debugDiv.style.color = '#4CAF50';
+                                                }
+                                                console.log("OneSignal ID Success (Polling):", pushId);
+                                                
+                                                // Toast Mesajı Göster
+                                                const toast = document.getElementById('toast-container');
+                                                if (toast) {
+                                                    toast.classList.add('show');
+                                                    setTimeout(() => toast.classList.remove('show'), 3000);
+                                                }
+                                                
+                                                // Welcome Push (Hoş Geldin Bildirimi)
+                                                fireNotification("Hoş Geldin! 🎉", "Bildirimler başarıyla aktifleştirildi.");
+                                                
+                                                clearInterval(idCheckInterval);
+                                            } else if (debugDiv && checkCount === 0) {
+                                                debugDiv.innerText = 'Status: Polling...';
+                                                debugDiv.style.color = '#FFA500';
                                             }
-                                        }
+                                            
+                                            checkCount++;
+                                            if (checkCount > 10) clearInterval(idCheckInterval); // 20 saniye sonra bırak
+                                        }, 2000);
                                     } catch (err) {
                                         console.error("OneSignal Sync Error:", err);
                                     }
