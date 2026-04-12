@@ -301,6 +301,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 window.OneSignalDeferred = window.OneSignalDeferred || [];
                                 window.OneSignalDeferred.push(async (instance) => {
                                     try {
+                                        // İzin zaten varsa bile tekrar tetikle (Handshake tazeleme)
+                                        await instance.Notifications.requestPermission();
                                         await instance.User.PushSubscription.optIn();
                                         const pushId = instance.User.PushSubscription.id;
                                         

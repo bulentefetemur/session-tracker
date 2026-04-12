@@ -27,6 +27,17 @@
       allowLocalhostAsSecureOrigin: true,
       requiresUserPrivacyConsent: false
     });
+
+    // Abonelik durumundaki değişiklikleri canlı dinle
+    OneSignal.User.PushSubscription.addEventListener("change", (event) => {
+        const pushId = event.current.id;
+        const debugDiv = document.getElementById('debug-status');
+        if (pushId && debugDiv) {
+            debugDiv.innerText = 'Status: Registered! ID: ' + pushId.substring(0, 8) + '...';
+            debugDiv.style.color = '#4CAF50';
+            console.log("OneSignal Live ID:", pushId);
+        }
+    });
   });
 </script>
 
@@ -665,10 +676,27 @@
                                     if (permission === 'granted') {
                                         window.OneSignalDeferred = window.OneSignalDeferred || [];
                                         window.OneSignalDeferred.push(async (instance) => {
-                                            // Cihazı aktif olarak OneSignal sistemine kaydet
-                                            await instance.User.PushSubscription.optIn(); 
-                                            const pushId = instance.User.PushSubscription.id;
-                                            console.log("SUCCESS! OneSignal Cihaz ID:", pushId);
+                                            try {
+                                                // İzin zaten varsa bile tekrar tetikle (Handshake tazeleme)
+                                                await instance.Notifications.requestPermission();
+                                                // Cihazı aktif olarak OneSignal sistemine kaydet
+                                                await instance.User.PushSubscription.optIn(); 
+                                                const pushId = instance.User.PushSubscription.id;
+                                                
+                                                const debugDiv = document.getElementById('debug-status');
+                                                if (debugDiv) {
+                                                    if (pushId) {
+                                                        debugDiv.innerText = 'Status: Registered! ID: ' + pushId.substring(0, 8) + '...';
+                                                        debugDiv.style.color = '#4CAF50'; // Yeşil
+                                                        console.log("OneSignal ID Success:", pushId);
+                                                    } else {
+                                                        debugDiv.innerText = 'Status: Ready (No ID yet)';
+                                                        debugDiv.style.color = '#FFA500'; // Turuncu
+                                                    }
+                                                }
+                                            } catch (err) {
+                                                console.error("OneSignal Sync Error:", err);
+                                            }
                                         });
                                     }
                                 });
@@ -818,7 +846,7 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
                 try {
-                    const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+                    const reg = await navigator.serviceWorker.register('./sw.js?v=2', { scope: './' });
                     console.log('Service Worker başarıyla kaydedildi. Kapsam:', reg.scope);
 
                     reg.addEventListener('updatefound', () => {
