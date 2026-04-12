@@ -300,10 +300,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (permission === 'granted') {
                                 window.OneSignalDeferred = window.OneSignalDeferred || [];
                                 window.OneSignalDeferred.push(async (instance) => {
-                                    // Cihazı aktif olarak OneSignal sistemine kaydet
-                                    await instance.User.PushSubscription.optIn(); 
+                                    // Cihazı aktif olarak OneSignal sistemine kaydet ve ID al
+                                    await instance.User.PushSubscription.optIn();
                                     const pushId = instance.User.PushSubscription.id;
-                                    console.log("SUCCESS! OneSignal Cihaz ID:", pushId);
+                                    
+                                    // Debug için ekrana yazdır (Önceki debug div'ini kullan)
+                                    const debugDiv = document.getElementById('debug-status');
+                                    if (debugDiv) {
+                                        debugDiv.innerText = pushId ? 'Status: Registered! ID: ' + pushId : 'Status: Syncing...';
+                                        debugDiv.style.color = '#4CAF50';
+                                    }
                                 });
                             }
                         });

@@ -22,10 +22,9 @@
   OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({
       appId: "0955cb95-118c-43f0-a716-c7c476bf9c9e",
-      notifyButton: {
-        enable: true,
-      },
-      serviceWorkerParam: { scope: '/' }
+      serviceWorkerPath: 'OneSignalSDKWorker.js',
+      serviceWorkerParam: { scope: '/' },
+      allowLocalhostAsSecureOrigin: true
     });
   });
 </script>
@@ -344,6 +343,8 @@
     <!-- Sessiz Modu Delen Audio Hack -->
     <audio id="silent-unlock" loop
         src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"></audio>
+
+    <div id="debug-status" style="position:absolute; top:40px; left:0; width:100%; text-align:center; font-size:12px; z-index:9999; color:#EBEBF599; pointer-events:none;">Status: Ready</div>
 
     <div id="app" class="theme-dark">
         <!-- KURULUM EKRANI (Idle State) -->
