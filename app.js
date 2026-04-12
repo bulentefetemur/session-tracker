@@ -1,3 +1,10 @@
+let isOneSignalReady = false;
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+window.OneSignalDeferred.push(function(OneSignal) {
+    isOneSignalReady = true;
+    console.log("OneSignal hazır ve nazır!");
+});
+
 class SessionTracker {
     constructor() {
         this.state = 'idle';
@@ -255,16 +262,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnStart.addEventListener('click', async () => {
         try {
-                // Güvenli Bildirim İsteği
-                window.OneSignalDeferred = window.OneSignalDeferred || [];
-                window.OneSignalDeferred.push(async function(OneSignal) {
-                    try {
-                        await OneSignal.Notifications.requestPermission();
-                        console.log("Bildirim izni başarıyla istendi.");
-                    } catch (err) {
-                        console.error("OneSignal İzin Hatası:", err);
-                    }
-                });
+                // Çökmeyi engelleyen akıllı tetikleyici
+                if (typeof OneSignalDeferred !== 'undefined' && isOneSignalReady) {
+                    OneSignalDeferred.push(async function(OneSignal) {
+                        try {
+                            await OneSignal.Notifications.requestPermission();
+                        } catch (e) {
+                            console.warn("Bildirim isteği reddedildi veya hata oluştu:", e);
+                        }
+                    });
+                } else {
+                    console.log("OneSignal henüz yüklenmedi, bildirim isteği atlanıyor...");
+                }
 
                 // --- AUDIO UNLOCK HACK (Sessiz Modu Delme) ---
                 let silentAudio = document.getElementById('silent-unlock');
