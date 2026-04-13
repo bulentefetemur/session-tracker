@@ -154,7 +154,9 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 85px;
+            height: 95px;
+            height: 95px; /* Biraz yükseltiyoruz */
+            padding-bottom: env(safe-area-inset-bottom, 20px); /* Yazıları yukarı itiyoruz */
             display: flex;
             justify-content: space-around;
             align-items: center;
@@ -163,7 +165,7 @@
             -webkit-backdrop-filter: blur(25px);
             border-top: 1px solid var(--glass-border);
             z-index: 100;
-            padding-bottom: env(safe-area-inset-bottom, 10px);
+            padding-bottom: env(safe-area-inset-bottom, 20px);
         }
 
         .nav-item {
@@ -177,6 +179,11 @@
 
         .nav-item.active {
             color: var(--dynamic-color);
+        }
+
+        .nav-item span {
+            margin-top: 4px;
+            font-size: 11px;
         }
 
         .nav-item svg {
@@ -194,7 +201,7 @@
             transition: opacity 0.4s;
             display: flex;
             flex-direction: column;
-            padding: env(safe-area-inset-top) 24px 20px 24px;
+            padding: env(safe-area-inset-top) 24px 100px 24px;
         }
 
         .tab-content.active {
@@ -313,12 +320,62 @@
             margin-top: auto;
             padding-bottom: 20px;
         }
+
+        .toggle-btn {
+            background: #1C1C1E;
+            border: 1px solid var(--glass-border);
+            color: #FFFFFF;
+            padding: 8px 24px;
+            border-radius: 99px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .toggle-btn.active {
+            background: var(--dynamic-color);
+            color: #000000;
+        }
+
+                /* --- KAYIP SAYAÇ VE BUTON STİLLERİ --- */
+        .time-picker-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: #1C1C1E;
+            padding: 16px 20px;
+            border-radius: 24px;
+            overflow: hidden; /* Taşmayı engeller, çarkı oluşturur */
+            height: 200px;    /* Çark yüksekliğini sabitler */
+            margin: 20px 0;
+            -webkit-mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 60%, transparent 95%);
+            mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 60%, transparent 95%);
+        }
+
+        .toggle-btn {
+            background: #1C1C1E;
+            border: 1px solid var(--glass-border);
+            color: #FFFFFF;
+            padding: 8px 24px;
+            border-radius: 99px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn.active {
+            background: var(--dynamic-color);
+            color: #000000;
+        }
     </style>
 </head>
 
 <body>
     <audio id="silent-unlock" loop
         src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"></audio>
+        <div id="debug-status"style="display:none; position:absolute; top:40px; left:0; width:100%; text-align:center; font-size:12px; z-index:9999; color:#EBEBF599; pointer-events:none;">Status: Ready</div>
     <div id="toast-container" class="toast-message"></div>
 
     <section id="login-screen">
@@ -348,7 +405,7 @@
                             style="color: var(--dynamic-color); font-size: 28px;">00:00</div>
                     </div>
                 </div>
-                <div id="debug-status" class="debug-status-profile">Status: Ready</div>
+                <div id="debug-status" class="debug-status-profile" style="display:none;">Status: Ready</div>
             </div>
 
             <div id="timer-tab" class="tab-content active">
@@ -416,15 +473,15 @@
         <nav id="bottom-nav" class="bottom-nav">
             <div class="nav-item" data-tab="profile-tab">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                <span style="font-size: 10px;">Profil</span>
+                <span>Profil</span>
             </div>
             <div class="nav-item active" data-tab="timer-tab">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                <span style="font-size: 10px;">Sayaç</span>
+                <span>Sayaç</span>
             </div>
             <div class="nav-item" data-tab="analytics-tab">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"></rect><rect x="10" y="8" width="4" height="13"></rect><rect x="2" y="13" width="4" height="8"></rect></svg>
-                <span style="font-size: 10px;">Analiz</span>
+                <span>Analiz</span>
             </div>
         </nav>
     </div>
