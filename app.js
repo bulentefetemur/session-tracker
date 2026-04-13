@@ -206,10 +206,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const setupScreen = document.getElementById('setup-screen');
     const activeScreen = document.getElementById('active-screen');
+    const loginScreen = document.getElementById('login-screen');
     
     const btnStart = document.getElementById('btn-start-session');
     const btnToggle = document.getElementById('btn-toggle-state');
     const btnEnd = document.getElementById('btn-end-session');
+    const btnLoginSubmit = document.getElementById('btn-login-submit');
+    const inputUsername = document.getElementById('input-username');
     
     const lblTargetTime = document.getElementById('lbl-target-time');
     const lblPercentage = document.getElementById('lbl-percentage');
@@ -220,6 +223,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const statRestTime = document.getElementById('stat-rest-time');
 
     const root = document.documentElement;
+
+    const bottomNav = document.getElementById('bottom-nav');
+    const navItems = document.querySelectorAll('.nav-item');
+    const tabContents = document.querySelectorAll('.tab-content');
+    let currentChartMode = 'daily';
+    const btnDailyView = document.getElementById('btn-daily-view');
+    const btnWeeklyView = document.getElementById('btn-weekly-view');
+    const chartTitle = document.getElementById('chart-title');
 
     let audioCtx = null; // iOS Ses İzni İçin
     let wakeLock = null;
@@ -252,10 +263,62 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- YARDIMCI METOTLAR ---
     function switchToActiveScreen() {
+        if (loginScreen) {
+            loginScreen.classList.remove('active');
+            loginScreen.classList.add('hidden');
+        }
         setupScreen.classList.remove('active');
         setupScreen.classList.add('hidden');
         activeScreen.classList.remove('hidden');
         activeScreen.classList.add('active');
+        if (bottomNav) bottomNav.classList.remove('hidden');
+    }
+
+    function switchToSetupScreen() {
+        if (loginScreen) {
+            loginScreen.classList.remove('active');
+            loginScreen.classList.add('hidden');
+        }
+        activeScreen.classList.remove('active');
+        activeScreen.classList.add('hidden');
+        setupScreen.classList.remove('hidden');
+        setupScreen.classList.add('active');
+        if (bottomNav) bottomNav.classList.remove('hidden');
+    }
+
+    // --- SEKMELER (TABS) & BOTTOM NAV ---
+    function switchTab(tabId) {
+        navItems.forEach(nav => {
+            nav.classList.toggle('active', nav.getAttribute('data-tab') === tabId);
+        });
+        tabContents.forEach(tab => {
+            tab.classList.toggle('active', tab.id === tabId);
+        });
+
+        if (tabId === 'profile-tab') updateProfileStats();
+        if (tabId === 'analytics-tab') renderChart();
+    }
+
+    navItems.forEach(item => {
+        item.addEventListener('click', () => switchTab(item.getAttribute('data-tab')));
+    });
+
+    // --- ANALİZ VE PROFİL MANTIĞI ---
+    if(btnDailyView && btnWeeklyView) {
+        btnDailyView.addEventListener('click', () => {
+            currentChartMode = 'daily';
+            btnDailyView.classList.add('active');
+            btnWeeklyView.classList.remove('active');
+            if (chartTitle) chartTitle.textContent = "Bugünkü Odaklanma";
+            renderChart();
+        });
+        btnWeeklyView.addEventListener('click', () => {
+            currentChartMode = 'weekly';
+            btnWeeklyView.classList.add('active');
+            btnDailyView.classList.remove('active');
+            if (chartTitle) chartTitle.textContent = "Haftalık Odaklanma";
+            renderChart();
+        });
     }
 
     // --- WHEEL PICKER MANTIĞI ---
@@ -321,16 +384,53 @@ document.addEventListener('DOMContentLoaded', () => {
         const chartEl = document.getElementById('weekly-chart');
         if (!chartEl) return;
         const data = Analytics.getWeeklyData();
-        let maxWork = Math.max(...data.map(d => d.work), 1); 
         
         chartEl.innerHTML = '';
-        data.forEach(day => {
-            const height = Math.max((day.work / maxWork) * 40, 2); // Max 40px height
-            const col = document.createElement('div');
-            col.className = 'chart-col';
-            col.innerHTML = `<div class="chart-bar" style="height: ${height}px;"></div><div class="chart-label">${day.day}</div>`;
-            chartEl.appendChild(col);
-        });
+
+        if (currentChartMode === 'weekly') {
+            let maxWork = Math.max(...data.map(d => d.work), 1); 
+            data.forEach(day => {
+                const height = Math.max((day.work / maxWork) * 80, 2); // Max 80px height
+                const col = document.createElement('div');
+                col.className = 'chart-col';
+                col.innerHTML = `<div class="chart-bar" style="height: ${height}px;"></div><div class="chart-label">${day.day}</div>`;
+                chartEl.appendChild(col);
+            });
+        } else {
+            const todayData = data[data.length - 1];
+            let maxVal = Math.max(todayData.work, todayData.rest, 1);
+            
+            const workHeight = Math.max((todayData.work / maxVal) * 80, 2);
+            const restHeight = Math.max((todayData.rest / maxVal) * 80, 2);
+
+            const workCol = document.createElement('div');
+            workCol.className = 'chart-col';
+            workCol.innerHTML = `<div class="chart-bar" style="height: ${workHeight}px; background: #FF3B30;"></div><div class="chart-label">Çalışma</div>`;
+            
+            const restCol = document.createElement('div');
+            restCol.className = 'chart-col';
+            restCol.innerHTML = `<div class="chart-bar" style="height: ${restHeight}px; background: #34C759;"></div><div class="chart-label">Mola</div>`;
+
+            chartEl.appendChild(workCol);
+            chartEl.appendChild(restCol);
+        }
+    }
+
+    function updateProfileStats() {
+        const profileName = document.getElementById('profile-name');
+        const profileTodayWork = document.getElementById('profile-today-work');
+        const profileWeekWork = document.getElementById('profile-week-work');
+
+        const userName = localStorage.getItem('trackerUserName') || 'Kullanıcı';
+        if(profileName) profileName.textContent = userName;
+
+        const data = Analytics.getWeeklyData();
+        const todayData = data[data.length - 1];
+        let weekTotalMs = 0;
+        data.forEach(d => weekTotalMs += d.work);
+
+        if(profileTodayWork) profileTodayWork.textContent = SessionTracker.formatTime(todayData.work);
+        if(profileWeekWork) profileWeekWork.textContent = SessionTracker.formatTime(weekTotalMs);
     }
 
     // --- INIT (BAŞLANGIÇ YÜKLEMESİ VE HAFIZA RESTORASYONU) ---
@@ -421,10 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderChart();
             clearInterval(renderInterval);
             releaseWakeLock();
-            activeScreen.classList.remove('active');
-            activeScreen.classList.add('hidden');
-            setupScreen.classList.remove('hidden');
-            setupScreen.classList.add('active');
+            switchToSetupScreen();
         }
     }
 
@@ -491,6 +588,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (tracker.state === 'resting') Analytics.addTime('rest', delta);
                 tracker.lastSaveTime = currentTime;
                 renderChart();
+                if (document.getElementById('profile-tab') && document.getElementById('profile-tab').classList.contains('active')) {
+                    updateProfileStats();
+                }
             }
         } catch(e) {
             console.error("UI Update Error:", e);

@@ -129,6 +129,74 @@
         border-color: var(--dynamic-color);
     }
 
+    /* BOTTOM NAV & TABS */
+    .bottom-nav {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 80px;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-top: 1px solid var(--glass-border);
+        z-index: 100;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        transition: opacity 0.3s;
+    }
+    .bottom-nav.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: color 0.3s, transform 0.2s;
+    }
+    .nav-item.active {
+        color: var(--dynamic-color);
+        transform: scale(1.1);
+    }
+    .tab-content {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 80px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+    .tab-content.active {
+        opacity: 1;
+        pointer-events: all;
+    }
+    .toggle-btn {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        color: var(--text-secondary);
+        padding: 8px 24px;
+        border-radius: 9999px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .toggle-btn.active {
+        background: var(--dynamic-color);
+        color: #000;
+        border-color: var(--dynamic-color);
+    }
+
     /* KURULUM EKRANI (Setup) */
     #setup-screen {
         justify-content: center;
@@ -329,10 +397,10 @@
     /* ANALYTICS CHART */
     .weekly-chart {
         display: flex;
-        justify-content: space-between;
+        justify-content: space-around;
         align-items: flex-end;
-        height: 60px;
-        margin-bottom: 90px;
+        height: 120px;
+        margin-bottom: 20px;
         padding: 0 10px;
     }
 
@@ -361,7 +429,7 @@
     /* ALT KALICI İSTATİSTİKLER */
     .glass-footer {
         position: absolute;
-        bottom: env(safe-area-inset-bottom, 20px);
+        bottom: 20px;
         left: 20px;
         right: 20px;
         background: var(--glass-bg);
@@ -447,7 +515,7 @@
 
     <div id="app" class="theme-dark">
         <!-- LOGIN EKRANI (Identity) -->
-        <section id="login-screen" class="screen active">
+        <section id="login-screen" class="screen active" style="z-index: 200; background: var(--bg-color);">
             <div class="header">
                 <h1>Hoş Geldin</h1>
                 <p class="subtitle">Sana nasıl hitap edelim?</p>
@@ -460,6 +528,27 @@
             </div>
         </section>
 
+        <div id="main-content" style="flex: 1; position: relative; width: 100%;">
+            <!-- PROFILE TAB -->
+            <div id="profile-tab" class="tab-content">
+                <div class="header" style="margin-top: 40px;">
+                    <h1 id="profile-name">Kullanıcı</h1>
+                    <p class="subtitle">Verimlilik Özeti</p>
+                </div>
+                <div class="profile-stats" style="display: flex; flex-direction: column; gap: 16px; margin-top: 30px; padding: 0 20px;">
+                    <div class="stat-card" style="background: var(--glass-bg); padding: 20px; border-radius: 16px; border: 1px solid var(--glass-border); text-align: center;">
+                        <span class="stat-title">Bugünkü Başarı</span>
+                        <div id="profile-today-work" class="stat-value" style="margin-top: 8px; color: var(--dynamic-color);">00:00</div>
+                    </div>
+                    <div class="stat-card" style="background: var(--glass-bg); padding: 20px; border-radius: 16px; border: 1px solid var(--glass-border); text-align: center;">
+                        <span class="stat-title">Bu Hafta Toplam Odaklanma</span>
+                        <div id="profile-week-work" class="stat-value" style="margin-top: 8px; color: var(--dynamic-color);">00:00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TIMER TAB -->
+            <div id="timer-tab" class="tab-content active">
         <!-- KURULUM EKRANI (Idle State) -->
         <section id="setup-screen" class="screen hidden">
             <div class="header">
@@ -507,8 +596,6 @@
                 <button id="btn-end-session" class="btn-secondary capsule">Çalışmayı Sonlandır</button>
             </div>
 
-            <div class="weekly-chart" id="weekly-chart"></div>
-
             <footer class="glass-footer">
                 <div class="stat-box">
                     <span class="stat-title">Toplam Çalışma</span>
@@ -521,6 +608,40 @@
                 </div>
             </footer>
         </section>
+            </div>
+
+            <!-- ANALYTICS TAB -->
+            <div id="analytics-tab" class="tab-content">
+                <div class="header" style="margin-top: 40px;">
+                    <h1>Analiz</h1>
+                    <p class="subtitle">Çalışma Geçmişin</p>
+                </div>
+                <div class="toggle-group" style="display: flex; justify-content: center; gap: 10px; margin: 30px 0;">
+                    <button id="btn-daily-view" class="toggle-btn active">Günlük</button>
+                    <button id="btn-weekly-view" class="toggle-btn">Haftalık</button>
+                </div>
+                <div class="analytics-section" style="padding: 20px; background: #1C1C1E; border-radius: 20px; margin: 0 20px;">
+                    <span id="chart-title" class="stat-title" style="font-size: 11px;">Günlük Odaklanma</span>
+                    <div id="analytics-chart" class="weekly-chart" style="margin-bottom: 0;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTTOM NAV -->
+        <nav id="bottom-nav" class="bottom-nav hidden">
+            <div class="nav-item" data-tab="profile-tab">
+                <span class="nav-icon" style="font-size: 24px;">👤</span>
+                <span class="nav-label" style="font-size: 10px; margin-top: 4px;">Profil</span>
+            </div>
+            <div class="nav-item active" data-tab="timer-tab">
+                <span class="nav-icon" style="font-size: 24px;">⏱️</span>
+                <span class="nav-label" style="font-size: 10px; margin-top: 4px;">Sayaç</span>
+            </div>
+            <div class="nav-item" data-tab="analytics-tab">
+                <span class="nav-icon" style="font-size: 24px;">📊</span>
+                <span class="nav-label" style="font-size: 10px; margin-top: 4px;">Analiz</span>
+            </div>
+        </nav>
     </div>
     <script src="app.js"></script>
 </body>
