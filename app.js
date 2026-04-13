@@ -207,6 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const setupScreen = document.getElementById('setup-screen');
     const activeScreen = document.getElementById('active-screen');
     const loginScreen = document.getElementById('login-screen');
+    const loadingOverlay = document.getElementById('loading-overlay');
     
     const btnStart = document.getElementById('btn-start-session');
     const btnToggle = document.getElementById('btn-toggle-state');
@@ -284,6 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setupScreen.classList.remove('hidden');
         setupScreen.classList.add('active');
         if (bottomNav) bottomNav.classList.remove('hidden');
+        if (typeof switchTab === 'function') switchTab('timer-tab');
     }
 
     // --- SEKMELER (TABS) & BOTTOM NAV ---

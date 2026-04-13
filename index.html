@@ -104,10 +104,18 @@
         z-index: 1;
     }
 
+/* LOGIN EKRANI ÖZEL */
+#login-screen {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 24px;
+}
+
     /* LOGIN EKRANI */
     .login-container {
         width: 100%;
-        margin-top: 20px;
     }
 
     .login-input {
@@ -513,6 +521,11 @@
     <div id="debug-status" style="position:absolute; top:40px; left:0; width:100%; text-align:center; font-size:12px; z-index:9999; color:#EBEBF599; pointer-events:none;">Status: Ready</div>
     <div id="toast-container" class="toast-message">Bildirimler Aktif!</div>
 
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Hazırlanıyor...</p>
+    </div>
+
     <div id="app" class="theme-dark">
         <!-- LOGIN EKRANI (Identity) -->
         <section id="login-screen" class="screen active" style="z-index: 200; background: var(--bg-color);">
@@ -523,7 +536,7 @@
             <div class="login-container">
                 <input type="text" id="input-username" class="login-input" placeholder="Adınız veya Kullanıcı Adınız" autocomplete="off">
             </div>
-            <div class="controls" style="margin-top: 10px;">
+            <div class="controls" style="margin-top: 0;">
                 <button id="btn-login-submit" class="btn-primary capsule">Hemen Başla</button>
             </div>
         </section>
