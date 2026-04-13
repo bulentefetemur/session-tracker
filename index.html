@@ -170,13 +170,18 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            color: var(--text-secondary);
+            color: #8E8E93;
             cursor: pointer;
             transition: color 0.3s;
         }
 
         .nav-item.active {
             color: var(--dynamic-color);
+        }
+
+        .nav-item svg {
+            margin-bottom: 4px;
+            transition: stroke 0.3s;
         }
 
         /* TAB MANAGEMENT */
@@ -300,15 +305,20 @@
             font-size: 16px;
             margin-top: 4px;
         }
+
+        .debug-status-profile {
+            text-align: center;
+            font-size: 10px;
+            color: rgba(255,255,255,0.2);
+            margin-top: auto;
+            padding-bottom: 20px;
+        }
     </style>
 </head>
 
 <body>
     <audio id="silent-unlock" loop
         src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"></audio>
-    <div id="debug-status"
-        style="position:absolute; top:45px; width:100%; text-align:center; font-size:11px; z-index:9999; color:var(--text-secondary);">
-        Status: Ready</div>
     <div id="toast-container" class="toast-message"></div>
 
     <section id="login-screen">
@@ -338,6 +348,7 @@
                             style="color: var(--dynamic-color); font-size: 28px;">00:00</div>
                     </div>
                 </div>
+                <div id="debug-status" class="debug-status-profile">Status: Ready</div>
             </div>
 
             <div id="timer-tab" class="tab-content active">
@@ -403,11 +414,17 @@
         </div>
 
         <nav id="bottom-nav" class="bottom-nav">
-            <div class="nav-item" data-tab="profile-tab"><span>👤</span><span style="font-size: 10px;">Profil</span>
+            <div class="nav-item" data-tab="profile-tab">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span style="font-size: 10px;">Profil</span>
             </div>
-            <div class="nav-item active" data-tab="timer-tab"><span>⏱️</span><span style="font-size: 10px;">Sayaç</span>
+            <div class="nav-item active" data-tab="timer-tab">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span style="font-size: 10px;">Sayaç</span>
             </div>
-            <div class="nav-item" data-tab="analytics-tab"><span>📊</span><span style="font-size: 10px;">Analiz</span>
+            <div class="nav-item" data-tab="analytics-tab">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"></rect><rect x="10" y="8" width="4" height="13"></rect><rect x="2" y="13" width="4" height="8"></rect></svg>
+                <span style="font-size: 10px;">Analiz</span>
             </div>
         </nav>
     </div>

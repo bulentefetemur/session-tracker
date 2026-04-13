@@ -30,12 +30,20 @@ class Analytics {
 
 class SessionTracker {
     constructor() {
+        this.notifiedWork60 = false;
+        this.notifiedRest15 = false;
+        this.notifiedRest30 = false;
+        this.targetReached = false;
         this.reset();
     }
     startSession(h, m, s) {
         this.targetMs = (h * 3600000) + (m * 60000) + (s * 1000);
         this.state = 'working';
         this.phaseStartTime = Date.now();
+        this.notifiedWork60 = false;
+        this.notifiedRest15 = false;
+        this.notifiedRest30 = false;
+        this.targetReached = false;
         this.save();
     }
     save() {
@@ -53,6 +61,10 @@ class SessionTracker {
     }
     reset() {
         this.state = 'idle'; this.targetMs = 0; this.totalWorkMs = 0; this.totalRestMs = 0; this.phaseStartTime = 0;
+        this.notifiedWork60 = false;
+        this.notifiedRest15 = false;
+        this.notifiedRest30 = false;
+        this.targetReached = false;
         localStorage.removeItem('sessionData');
     }
     toggleState() {
@@ -61,6 +73,9 @@ class SessionTracker {
         if (this.state === 'working') { this.totalWorkMs += elapsed; this.state = 'resting'; }
         else { this.totalRestMs += elapsed; this.state = 'working'; }
         this.phaseStartTime = Date.now();
+        this.notifiedWork60 = false;
+        this.notifiedRest15 = false;
+        this.notifiedRest30 = false;
         this.save();
     }
     getCurrentStats() {
@@ -70,7 +85,25 @@ class SessionTracker {
         let phaseElapsed = now - this.phaseStartTime;
         if (this.state === 'working') curWork += phaseElapsed;
         else if (this.state === 'resting') curRest += phaseElapsed;
-        return { state: this.state, phaseElapsed, curWork, curRest, progress: (curWork / this.targetMs) * 100 };
+        
+        let progress = this.targetMs > 0 ? (curWork / this.targetMs) * 100 : 0;
+        let justReachedTarget = false, triggerWork60 = false, triggerRest15 = false, triggerRest30 = false;
+
+        if (this.state === 'working' && phaseElapsed >= 3600000 && !this.notifiedWork60) {
+            this.notifiedWork60 = true; triggerWork60 = true;
+        } else if (this.state === 'resting') {
+            if (phaseElapsed >= 1800000 && !this.notifiedRest30) {
+                this.notifiedRest30 = true; triggerRest30 = true;
+            } else if (phaseElapsed >= 900000 && !this.notifiedRest15) {
+                this.notifiedRest15 = true; triggerRest15 = true;
+            }
+        }
+        
+        if (progress >= 100 && !this.targetReached && this.targetMs > 0) {
+            this.targetReached = true; justReachedTarget = true; this.save();
+        }
+
+        return { state: this.state, phaseElapsed, curWork, curRest, progress, justReachedTarget, triggerWork60, triggerRest15, triggerRest30 };
     }
 }
 
@@ -153,6 +186,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- UI HELPERS ---
+    async function fireNotification(title, body) {
+        if (!("Notification" in window) || Notification.permission !== "granted") return;
+        
+        navigator.serviceWorker.getRegistration().then(reg => {
+            if (reg) {
+                reg.showNotification(title, {
+                    body: body,
+                    icon: "./session_tracker.png",
+                    badge: "./session_tracker.png",
+                    vibrate: [200, 100, 200]
+                });
+            }
+        });
+    }
+
     function updateUI() {
         const s = tracker.getCurrentStats();
         document.documentElement.style.setProperty('--dynamic-color', s.state === 'resting' ? '#34C759' : '#FF3B30');
@@ -164,6 +212,19 @@ document.addEventListener('DOMContentLoaded', () => {
         
         Analytics.addTime(s.state === 'working' ? 'work' : 'rest', 100);
         if (document.getElementById('profile-tab').classList.contains('active')) updateProfileStats();
+
+        if (s.justReachedTarget) {
+            fireNotification("Hedefe Ulaşıldı! 🎉", "Belirlediğiniz çalışma süresini tamamladınız. Harika iş çıkardınız!");
+        }
+        if (s.triggerWork60) {
+            fireNotification("Harika gidiyorsun! ☕", "Bir saati devirdin. Kısa bir mola zihni tazeler, hadi bir kahve al!");
+        }
+        if (s.triggerRest15) {
+            fireNotification("Mola Bitti 💪", "15 dakikalık mola süren doldu. Odaklanmaya dönmeye ne dersin?");
+        }
+        if (s.triggerRest30) {
+            fireNotification("Yarım Saat Oldu 🍱", "Yarım saati geride bıraktın. Kalan vaktini iyi değerlendir, sonra işe dönme zamanı!");
+        }
     }
 
     function switchTab(tabId) {
