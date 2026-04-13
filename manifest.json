@@ -1,9 +1,9 @@
 {
-  "id": "https://session-tracker-two.vercel.app/",
+  "id": "https://session-tracker-two.vercel.app",
   "name": "Session Tracker",
   "short_name": "Tracker",
   "description": "Minimalist çalışma ve mola takipçisi.",
-  "start_url": "https://session-tracker-two.vercel.app/",
+  "start_url": "https://session-tracker-two.vercel.app",
   "scope": "/",
   "display": "standalone",
   "gcm_sender_id": "482941778795",

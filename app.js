@@ -293,23 +293,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnStart.addEventListener('click', async () => {
         try {
-            // 2. OneSignal'ı "Vitese Tak"
-            if (window.OneSignal) {
+            if ('serviceWorker' in navigator && window.OneSignal) {
                 try {
-                    // Önce izin durumunu tazele (Hala Ready ise bu tetikler)
-                    await OneSignal.Notifications.requestPermission();
+                    // iOS için kritik: Önce worker'ın hazır olmasını bekle
+                    const registration = await navigator.serviceWorker.ready;
                     
-                    // Aboneliği zorla aktifleştir
-                    await OneSignal.User.PushSubscription.optIn();
-                    
-                    // ID'yi hemen kontrol et
-                    const pushId = OneSignal.User.PushSubscription.id;
-                    if (pushId) {
-                        document.getElementById('debug-status').innerText = "ID: " + pushId.substring(0,8);
-                        document.getElementById('debug-status').style.color = "#4CAF50";
-                    }
-                } catch (e) {
-                    console.error("OneSignal Handshake Error:", e);
+                    window.OneSignalDeferred.push(async (instance) => {
+                        // Önce izni tazele (Native pencereyi zorla)
+                        await instance.Notifications.requestPermission();
+                        // Sonra bulut kaydını (optIn) tetikle
+                        await instance.User.PushSubscription.optIn();
+                        console.log("OptIn tetiklendi, ID bekleniyor...");
+                    });
+                } catch (err) {
+                    console.error("SW Ready Hatası:", err);
                 }
             }
 

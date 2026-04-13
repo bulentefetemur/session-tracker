@@ -20,31 +20,21 @@
   window.OneSignal = window.OneSignal || [];
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   OneSignalDeferred.push(async function(OneSignal) {
-    OneSignal.Debug.setLogLevel(6);
     await OneSignal.init({
-      appId: "0955cb95-118c-43f0-a716-c7c476bf9c9e",
-      serviceWorkerPath: 'OneSignalSDKWorker.js',
-      serviceWorkerParam: { scope: '/' },
-      allowLocalhostAsSecureOrigin: true
+        appId: "0955cb95-118c-43f0-a716-c7c476bf9c9e",
+        serviceWorkerPath: 'OneSignalSDKWorker.js',
+        serviceWorkerParam: { scope: '/' },
+        allowLocalhostAsSecureOrigin: true
     });
 
-    // Abonelik durumundaki değişiklikleri canlı dinle
-    OneSignal.User.PushSubscription.addEventListener("change", (event) => {
-      const id = event.current.id;
-      const debugStatus = document.getElementById('debug-status');
-      if (id) {
-          debugStatus.innerText = "ID: " + id.substring(0,8);
-          debugStatus.style.color = "#4CAF50";
-      }
-    });
-
-    setTimeout(() => {
-        const debugStatus = document.getElementById('debug-status');
-        if (debugStatus && debugStatus.innerText.includes("Ready")) {
-            debugStatus.innerText = "Tıklama Bekleniyor...";
-            debugStatus.style.color = "#FFA500";
+    // ID değişimini sadece konsola değil, ekrana da kesin yazdır
+    OneSignal.User.PushSubscription.addEventListener("change", (e) => {
+        const statusEl = document.getElementById('debug-status');
+        if (e.current.id && statusEl) {
+            statusEl.innerText = "ID: " + e.current.id.substring(0,8);
+            statusEl.style.color = "#4CAF50";
         }
-    }, 10000);
+    });
   });
 </script>
 
