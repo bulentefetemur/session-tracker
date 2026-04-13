@@ -20,6 +20,7 @@
   window.OneSignal = window.OneSignal || [];
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   OneSignalDeferred.push(async function(OneSignal) {
+    OneSignal.Debug.setLogLevel(6);
     await OneSignal.init({
       appId: "0955cb95-118c-43f0-a716-c7c476bf9c9e",
       serviceWorkerPath: 'OneSignalSDKWorker.js',
@@ -30,8 +31,20 @@
     // Abonelik durumundaki değişiklikleri canlı dinle
     OneSignal.User.PushSubscription.addEventListener("change", (event) => {
       const id = event.current.id;
-      document.getElementById('debug-status').innerText = id ? "ID: " + id.substring(0,8) : "Ready";
+      const debugStatus = document.getElementById('debug-status');
+      if (id) {
+          debugStatus.innerText = "ID: " + id.substring(0,8);
+          debugStatus.style.color = "#4CAF50";
+      }
     });
+
+    setTimeout(() => {
+        const debugStatus = document.getElementById('debug-status');
+        if (debugStatus && debugStatus.innerText.includes("Ready")) {
+            debugStatus.innerText = "Tıklama Bekleniyor...";
+            debugStatus.style.color = "#FFA500";
+        }
+    }, 10000);
   });
 </script>
 

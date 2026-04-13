@@ -291,14 +291,26 @@ document.addEventListener('DOMContentLoaded', () => {
         renderInterval = setInterval(updateUI, 100);
     }
 
-    btnStart.addEventListener('click', () => {
+    btnStart.addEventListener('click', async () => {
         try {
-            if (window.Notification) {
-                Notification.requestPermission().then(permission => {
-                    if (permission === 'granted' && window.OneSignal) {
-                        OneSignal.User.PushSubscription.optIn();
+            // 2. OneSignal'ı "Vitese Tak"
+            if (window.OneSignal) {
+                try {
+                    // Önce izin durumunu tazele (Hala Ready ise bu tetikler)
+                    await OneSignal.Notifications.requestPermission();
+                    
+                    // Aboneliği zorla aktifleştir
+                    await OneSignal.User.PushSubscription.optIn();
+                    
+                    // ID'yi hemen kontrol et
+                    const pushId = OneSignal.User.PushSubscription.id;
+                    if (pushId) {
+                        document.getElementById('debug-status').innerText = "ID: " + pushId.substring(0,8);
+                        document.getElementById('debug-status').style.color = "#4CAF50";
                     }
-                });
+                } catch (e) {
+                    console.error("OneSignal Handshake Error:", e);
+                }
             }
 
                 // --- AUDIO UNLOCK HACK (Sessiz Modu Delme) ---
