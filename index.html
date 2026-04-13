@@ -55,14 +55,6 @@
         }
 
         body {
-            <div id="coming-soon-overlay" style="position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999999; text-align: center; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
-    <h1 style="color: #fff; font-size: 34px; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.5px;">Yakında Sizlerle... ⏱️</h1>
-    <p style="color: #EBEBF599; font-size: 18px; line-height: 1.5; max-width: 300px;">Odaklanma asistanı şu an mutfakta hazırlanıyor. Çok yakında yayında olacağız.</p>
-    <div style="margin-top: 40px; width: 40px; height: 40px; border: 3px solid rgba(255,149,0,0.1); border-top: 3px solid #FF9500; border-radius: 50%; animation: spin 1.5s linear infinite;"></div>
-    <style>
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-    </style>
-    </div>
             background-color: var(--bg-color);
             color: var(--text-primary);
             overflow: hidden;
@@ -377,10 +369,41 @@
             background: var(--dynamic-color);
             color: #000000;
         }
+
+        #coming-soon-curtain {
+            position: fixed;
+            inset: 0;
+            background: #000000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999999; /* En üst katman */
+            color: #FFFFFF;
+            text-align: center;
+            padding: 32px;
+            font-family: -apple-system, system-ui, sans-serif;
+        }
+        .spin-loader {
+            margin-top: 40px;
+            width: 44px;
+            height: 44px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top: 3px solid #FF9500;
+            border-radius: 50%;
+            animation: spin 1.2s linear infinite;
+        }
     </style>
 </head>
 
 <body>
+    <div id="coming-soon-curtain">
+        <h1 style="font-size: 34px; font-weight: 700; margin-bottom: 16px;">Yakında... ⏱️</h1>
+        <p style="color: rgba(255,255,255,0.6); font-size: 18px; max-width: 320px; line-height: 1.5;">
+            Yeni nesil odaklanma asistanı şu an mutfakta kalibre ediliyor. Çok yakında yayındayız.
+        </p>
+        <div class="spin-loader"></div>
+    </div>
     <audio id="silent-unlock" loop
         src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"></audio>
         <div id="debug-status"style="display:none; position:absolute; top:40px; left:0; width:100%; text-align:center; font-size:12px; z-index:9999; color:#EBEBF599; pointer-events:none;">Status: Ready</div>
