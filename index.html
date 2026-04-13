@@ -104,6 +104,31 @@
         z-index: 1;
     }
 
+    /* LOGIN EKRANI */
+    .login-container {
+        width: 100%;
+        margin-top: 20px;
+    }
+
+    .login-input {
+        width: 100%;
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        color: var(--text-primary);
+        padding: 18px 24px;
+        border-radius: 9999px;
+        font-size: 17px;
+        outline: none;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        text-align: center;
+        transition: border-color 0.3s ease;
+    }
+
+    .login-input:focus {
+        border-color: var(--dynamic-color);
+    }
+
     /* KURULUM EKRANI (Setup) */
     #setup-screen {
         justify-content: center;
@@ -421,8 +446,22 @@
     <div id="toast-container" class="toast-message">Bildirimler Aktif!</div>
 
     <div id="app" class="theme-dark">
+        <!-- LOGIN EKRANI (Identity) -->
+        <section id="login-screen" class="screen active">
+            <div class="header">
+                <h1>Hoş Geldin</h1>
+                <p class="subtitle">Sana nasıl hitap edelim?</p>
+            </div>
+            <div class="login-container">
+                <input type="text" id="input-username" class="login-input" placeholder="Adınız veya Kullanıcı Adınız" autocomplete="off">
+            </div>
+            <div class="controls" style="margin-top: 10px;">
+                <button id="btn-login-submit" class="btn-primary capsule">Hemen Başla</button>
+            </div>
+        </section>
+
         <!-- KURULUM EKRANI (Idle State) -->
-        <section id="setup-screen" class="screen active">
+        <section id="setup-screen" class="screen hidden">
             <div class="header">
                 <h1>Hedef Belirle</h1>
                 <p class="subtitle">Çalışma süreni planla</p>
