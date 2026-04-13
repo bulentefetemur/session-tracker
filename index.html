@@ -106,16 +106,19 @@
 
 /* LOGIN EKRANI ÖZEL */
 #login-screen {
+    display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    text-align: center;
-    gap: 24px;
+    height: 100vh;
+    padding: 0 40px;
+    gap: 32px;
 }
 
     /* LOGIN EKRANI */
     .login-container {
         width: 100%;
+    text-align: center;
     }
 
     .login-input {
@@ -523,21 +526,20 @@
 
     <div id="loading-overlay" class="loading-overlay">
         <div class="spinner"></div>
-        <p>Hazırlanıyor...</p>
     </div>
 
     <div id="app" class="theme-dark">
         <!-- LOGIN EKRANI (Identity) -->
         <section id="login-screen" class="screen active" style="z-index: 200; background: var(--bg-color);">
-            <div class="header">
-                <h1>Hoş Geldin</h1>
-                <p class="subtitle">Sana nasıl hitap edelim?</p>
-            </div>
             <div class="login-container">
-                <input type="text" id="input-username" class="login-input" placeholder="Adınız veya Kullanıcı Adınız" autocomplete="off">
-            </div>
-            <div class="controls" style="margin-top: 0;">
-                <button id="btn-login-submit" class="btn-primary capsule">Hemen Başla</button>
+                <div class="header" style="margin-bottom: 24px;">
+                    <h1>Hoş Geldin</h1>
+                    <p class="subtitle">Sana nasıl hitap edelim?</p>
+                </div>
+                <input type="text" id="username-input" class="login-input" placeholder="Adınız veya Kullanıcı Adınız" autocomplete="off">
+                <div class="controls" style="margin-top: 24px;">
+                    <button id="btn-login-submit" class="btn-primary capsule">Hemen Başla</button>
+                </div>
             </div>
         </section>
 
