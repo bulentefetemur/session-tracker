@@ -291,25 +291,9 @@ document.addEventListener('DOMContentLoaded', () => {
         renderInterval = setInterval(updateUI, 100);
     }
 
-    btnStart.addEventListener('click', async () => {
+    btnStart.addEventListener('click', () => {
+        console.log("Butona basıldı!");
         try {
-            if ('serviceWorker' in navigator && window.OneSignal) {
-                try {
-                    // iOS için kritik: Önce worker'ın hazır olmasını bekle
-                    const registration = await navigator.serviceWorker.ready;
-                    
-                    window.OneSignalDeferred.push(async (instance) => {
-                        // Önce izni tazele (Native pencereyi zorla)
-                        await instance.Notifications.requestPermission();
-                        // Sonra bulut kaydını (optIn) tetikle
-                        await instance.User.PushSubscription.optIn();
-                        console.log("OptIn tetiklendi, ID bekleniyor...");
-                    });
-                } catch (err) {
-                    console.error("SW Ready Hatası:", err);
-                }
-            }
-
                 // --- AUDIO UNLOCK HACK (Sessiz Modu Delme) ---
                 let silentAudio = document.getElementById('silent-unlock');
                 if (!silentAudio) {
@@ -357,6 +341,14 @@ document.addEventListener('DOMContentLoaded', () => {
             switchToActiveScreen();
             requestWakeLock();
             renderInterval = setInterval(updateUI, 100);
+
+            // 2. OneSignal Kaydı (Hata vermemesi için try-catch içinde)
+            try {
+                if (window.OneSignal) {
+                    OneSignal.Notifications.requestPermission();
+                    OneSignal.User.PushSubscription.optIn();
+                }
+            } catch (e) { console.log("OS Error", e); }
         } catch (e) {
             alert("Start Error: " + e.message);
         }

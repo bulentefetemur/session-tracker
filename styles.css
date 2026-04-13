@@ -24,6 +24,11 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
+    position: fixed;
+    width: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-user-drag: none;
 }
 
 #app {

@@ -26,15 +26,6 @@
         serviceWorkerParam: { scope: '/' },
         allowLocalhostAsSecureOrigin: true
     });
-
-    // ID değişimini sadece konsola değil, ekrana da kesin yazdır
-    OneSignal.User.PushSubscription.addEventListener("change", (e) => {
-        const statusEl = document.getElementById('debug-status');
-        if (e.current.id && statusEl) {
-            statusEl.innerText = "ID: " + e.current.id.substring(0,8);
-            statusEl.style.color = "#4CAF50";
-        }
-    });
   });
 </script>
 
@@ -66,6 +57,11 @@
         justify-content: center;
         align-items: center;
         height: 100vh;
+    position: fixed;
+    width: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-user-drag: none;
     }
 
     #app {
