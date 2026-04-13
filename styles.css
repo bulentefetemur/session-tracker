@@ -1,11 +1,37 @@
-/* Temel Değişkenler ve Sıfırlama */
-:root {
+< !DOCTYPE html><html lang="tr"><head><link rel="manifest" href="./manifest.json"><link rel="apple-touch-icon" href="./session_tracker.png"><meta charset="UTF-8"><meta name="viewport"
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="theme-color" content="#000000"><meta name="apple-mobile-web-app-title" content="Tracker"><script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"></script><script>window.OneSignalDeferred=window.OneSignalDeferred || [];
+
+OneSignalDeferred.push(async function (OneSignal) {
+        await OneSignal.init({
+
+            appId: "0955cb95-118c-43f0-a716-c7c476bf9c9e",
+            serviceWorkerPath: 'OneSignalSDKWorker.js',
+            serviceWorkerParam: {
+                scope: '/'
+            }
+
+            ,
+            allowLocalhostAsSecureOrigin: true
+        });
+
+    OneSignal.User.PushSubscription.addEventListener("change", (event)=> {
+            const id=event.current.id;
+            const statusEl=document.getElementById('debug-status');
+
+            if (statusEl) {
+                statusEl.innerText=id ? "Status: Registered! ID: " + id.substring(0, 8) : "Status: Ready";
+                statusEl.style.color=id ? "#4CAF50" : "#EBEBF599";
+            }
+        });
+});
+
+</script><title>Session Tracker</title><style> :root {
     --bg-color: #000000;
     --text-primary: #FFFFFF;
     --text-secondary: #EBEBF599;
     --glass-bg: rgba(44, 44, 46, 0.7);
     --glass-border: rgba(255, 255, 255, 0.1);
-    --dynamic-color: #FF3B30; 
+    --dynamic-color: #FF3B30;
 }
 
 * {
@@ -26,7 +52,6 @@ body {
     height: 100vh;
     position: fixed;
     width: 100%;
-    overflow: hidden;
     overscroll-behavior: none;
     -webkit-user-drag: none;
 }
@@ -40,7 +65,6 @@ body {
     flex-direction: column;
 }
 
-/* Ekran Geçişleri */
 .screen {
     position: absolute;
     inset: 0;
@@ -62,7 +86,6 @@ body {
     z-index: 1;
 }
 
-/* KURULUM EKRANI (Setup) */
 #setup-screen {
     justify-content: center;
     align-items: center;
@@ -93,6 +116,8 @@ body {
     background: #1C1C1E;
     padding: 16px 20px;
     border-radius: 24px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 60%, transparent 95%);
+    mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 60%, transparent 95%);
 }
 
 .picker-group {
@@ -103,11 +128,11 @@ body {
 }
 
 .picker-column {
-    height: 150px; /* 50px * 3 elements */
+    height: 150px;
     width: 60px;
     overflow-y: scroll;
     scroll-snap-type: y mandatory;
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
     -ms-overflow-style: none;
 }
 
@@ -115,7 +140,6 @@ body {
     display: none;
 }
 
-/* İlk ve son elemanların merkeze hizalanabilmesi için boşluklar */
 .picker-column::before,
 .picker-column::after {
     content: '';
@@ -161,7 +185,6 @@ body {
     z-index: 2;
 }
 
-/* BUTONLAR (Capsule Form) */
 .capsule {
     border-radius: 9999px;
     border: none;
@@ -179,7 +202,7 @@ body {
 }
 
 .btn-primary {
-    background-color: #0A84FF;
+    background-color: #FF9500;
     color: #FFF;
 }
 
@@ -193,7 +216,7 @@ body {
     flex-direction: column;
     gap: 16px;
     width: 100%;
-    margin-bottom: 140px;
+    margin-bottom: 24px;
 }
 
 .btn-secondary {
@@ -201,7 +224,6 @@ body {
     color: #FFFFFF;
 }
 
-/* AKTİF EKRAN (Timer & Stats) */
 #active-screen {
     justify-content: space-between;
 }
@@ -257,7 +279,44 @@ body {
     transition: color 0.3s ease;
 }
 
-/* ALT KALICI İSTATİSTİKLER (Glassmorphism Footer) */
+/* --- HAFTALIK GRAFİK STİLLERİ --- */
+.analytics-section {
+    padding: 20px;
+    background: #1C1C1E;
+    border-radius: 20px;
+    margin-bottom: 110px;
+    /* Footer'ın üstünde kalması için */
+}
+
+.chart-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 60px;
+    margin-top: 12px;
+}
+
+.chart-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 12%;
+}
+
+.chart-bar {
+    width: 8px;
+    background: var(--dynamic-color);
+    border-radius: 4px;
+    transition: height 0.5s ease, background-color 0.3s ease;
+    min-height: 2px;
+}
+
+.chart-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+}
+
 .glass-footer {
     position: absolute;
     bottom: env(safe-area-inset-bottom, 20px);
@@ -301,3 +360,33 @@ body {
     height: 40px;
     background: var(--glass-border);
 }
+
+.toast-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -30%);
+    background: rgba(30, 30, 30, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #FFF;
+    padding: 16px 24px;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    z-index: 10000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    text-align: center;
+}
+
+.toast-message.show {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+}
+
+</style></head><body><audio id="silent-unlock" loop src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"></audio><div id="debug-status"
+style="position:absolute; top:40px; left:0; width:100%; text-align:center; font-size:12px; z-index:9999; color:#EBEBF599; pointer-events:none;">Status: Ready</div><div id="toast-container" class="toast-message">Bildirimler Aktif !</div><div id="app"><section id="setup-screen" class="screen active"><div class="header"><h1>Hedef Belirle</h1><p class="subtitle">Çalışma süreni planla</p></div><div class="time-picker-container"><div class="picker-highlight"></div><div class="picker-group"><div class="picker-column" id="picker-hours"></div><label>Saat</label></div><div class="picker-separator">:</div><div class="picker-group"><div class="picker-column" id="picker-minutes"></div><label>Dk</label></div><div class="picker-separator">:</div><div class="picker-group"><div class="picker-column" id="picker-seconds"></div><label>Sn</label></div></div><button id="btn-start-session" class="btn-primary capsule">Oturumu Başlat</button></section><section id="active-screen" class="screen hidden"><div class="active-header"><span class="target-label">Hedef: <span id="lbl-target-time">00:00</span></span></div><div class="center-focus"><div id="progress-indicator" class="progress-pill"><span id="lbl-percentage">%0</span></div><h2 id="lbl-current-timer" class="massive-timer">00:00</h2><p id="lbl-current-state" class="state-text">Çalışıyor</p></div><div class="controls"><button id="btn-toggle-state" class="btn-toggle capsule">Mola Ver</button><button id="btn-end-session" class="btn-secondary capsule">Çalışmayı Sonlandır</button></div><div class="analytics-section"><span class="stat-title" style="font-size: 11px;">Haftalık Odaklanma</span><div id="weekly-chart" class="chart-container"></div></div><footer class="glass-footer"><div class="stat-box"><span class="stat-title">Toplam Çalışma</span><span id="stat-work-time" class="stat-value">00:00</span></div><div class="stat-divider"></div><div class="stat-box"><span class="stat-title">Toplam Mola</span><span id="stat-rest-time" class="stat-value">00:00</span></div></footer></section></div><script src="app.js"></script></body></html>

@@ -237,7 +237,7 @@
         flex-direction: column;
         gap: 16px;
         width: 100%;
-        margin-bottom: 140px;
+        margin-bottom: 20px;
     }
 
     .btn-secondary {
@@ -299,6 +299,38 @@
         font-weight: 500;
         color: var(--dynamic-color);
         transition: color 0.3s ease;
+    }
+
+    /* ANALYTICS CHART */
+    .weekly-chart {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        height: 60px;
+        margin-bottom: 90px;
+        padding: 0 10px;
+    }
+
+    .chart-col {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        flex: 1;
+    }
+
+    .chart-bar {
+        width: 12px;
+        background: var(--dynamic-color);
+        border-radius: 4px;
+        min-height: 2px;
+        max-height: 40px;
+        transition: height 0.5s ease, background 0.5s ease;
+    }
+
+    .chart-label {
+        font-size: 10px;
+        color: var(--text-secondary);
     }
 
     /* ALT KALICI İSTATİSTİKLER */
@@ -435,6 +467,8 @@
                 <button id="btn-toggle-state" class="btn-toggle capsule">Mola Ver</button>
                 <button id="btn-end-session" class="btn-secondary capsule">Çalışmayı Sonlandır</button>
             </div>
+
+            <div class="weekly-chart" id="weekly-chart"></div>
 
             <footer class="glass-footer">
                 <div class="stat-box">

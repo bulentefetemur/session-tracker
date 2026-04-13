@@ -1,3 +1,33 @@
+class Analytics {
+    static getTodayKey() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    static addTime(type, ms) {
+        try {
+            const key = this.getTodayKey();
+            let data = JSON.parse(localStorage.getItem('trackerAnalytics') || '{}');
+            if (!data[key]) data[key] = { work: 0, rest: 0 };
+            data[key][type] += ms;
+            localStorage.setItem('trackerAnalytics', JSON.stringify(data));
+        } catch(e) { console.error("Analytics Error", e); }
+    }
+    static getWeeklyData() {
+        try {
+            const data = JSON.parse(localStorage.getItem('trackerAnalytics') || '{}');
+            const result = [];
+            for(let i=6; i>=0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                const dayName = d.toLocaleDateString('tr-TR', {weekday:'short'});
+                result.push({ day: dayName, work: data[key]?.work || 0, rest: data[key]?.rest || 0 });
+            }
+            return result;
+        } catch(e) { return []; }
+    }
+}
+
 class SessionTracker {
     constructor() {
         this.state = 'idle';
@@ -9,7 +39,7 @@ class SessionTracker {
         this.lastSaveTime = Date.now();
         this.notifiedWork60 = false;
         this.notifiedRest15 = false;
-        this.notifiedRest60 = false;
+        this.notifiedRest30 = false;
     }
 
     startSession(targetHours, targetMinutes, targetSeconds) {
@@ -19,26 +49,28 @@ class SessionTracker {
         this.targetReached = false;
         this.notifiedWork60 = false;
         this.notifiedRest15 = false;
-        this.notifiedRest60 = false;
+        this.notifiedRest30 = false;
         this.save();
     }
 
     save() {
-        const data = {
-            state: this.state,
-            targetMs: this.targetMs,
-            totalWorkMs: this.totalWorkMs,
-            totalRestMs: this.totalRestMs,
-            phaseStartTime: this.phaseStartTime,
-            targetReached: this.targetReached
-        };
-        localStorage.setItem('sessionData', JSON.stringify(data));
+        try {
+            const data = {
+                state: this.state,
+                targetMs: this.targetMs,
+                totalWorkMs: this.totalWorkMs,
+                totalRestMs: this.totalRestMs,
+                phaseStartTime: this.phaseStartTime,
+                targetReached: this.targetReached
+            };
+            localStorage.setItem('sessionData', JSON.stringify(data));
+        } catch(e) { console.error("Save Error", e); }
     }
 
     load() {
-        const data = localStorage.getItem('sessionData');
-        if (data) {
-            try {
+        try {
+            const data = localStorage.getItem('sessionData');
+            if (data) {
                 const parsed = JSON.parse(data);
                 this.state = parsed.state;
                 this.targetMs = parsed.targetMs;
@@ -47,10 +79,9 @@ class SessionTracker {
                 this.phaseStartTime = parsed.phaseStartTime;
                 this.targetReached = parsed.targetReached;
                 return true;
-            } catch (e) {
-                console.error("Data parse error", e);
-                return false;
             }
+        } catch (e) {
+            console.error("Data load error", e);
         }
         return false;
     }
@@ -64,8 +95,11 @@ class SessionTracker {
         this.targetReached = false;
         this.notifiedWork60 = false;
         this.notifiedRest15 = false;
-        this.notifiedRest60 = false;
-        localStorage.removeItem('sessionData');
+        this.notifiedRest30 = false;
+        
+        try {
+            localStorage.removeItem('sessionData');
+        } catch(e) {}
     }
 
     toggleState() {
@@ -85,7 +119,7 @@ class SessionTracker {
         this.phaseStartTime = now;
         this.notifiedWork60 = false;
         this.notifiedRest15 = false;
-        this.notifiedRest60 = false;
+        this.notifiedRest30 = false;
         this.save();
     }
 
@@ -110,15 +144,15 @@ class SessionTracker {
         let justReachedTarget = false;
         let triggerWork60 = false;
         let triggerRest15 = false;
-        let triggerRest60 = false;
+        let triggerRest30 = false;
 
         if (this.state === 'working' && currentPhaseElapsed >= 3600000 && !this.notifiedWork60) {
             this.notifiedWork60 = true;
             triggerWork60 = true;
         } else if (this.state === 'resting') {
-            if (currentPhaseElapsed >= 3600000 && !this.notifiedRest60) {
-                this.notifiedRest60 = true;
-                triggerRest60 = true;
+            if (currentPhaseElapsed >= 1800000 && !this.notifiedRest30) {
+                this.notifiedRest30 = true;
+                triggerRest30 = true;
             } else if (currentPhaseElapsed >= 900000 && !this.notifiedRest15) {
                 this.notifiedRest15 = true;
                 triggerRest15 = true;
@@ -131,11 +165,11 @@ class SessionTracker {
             this.save();
         }
 
-        let colorHex = '#FF3B30'; // Kırmızı
-        if (progressPercentage > 70) {
-            colorHex = '#34C759'; // Yeşil
-        } else if (progressPercentage > 30) {
-            colorHex = '#FFCC00'; // Sarı
+        let colorHex = '#FF3B30'; // Varsayılan
+        if (this.state === 'working') {
+            colorHex = '#FF3B30'; // Odak Turuncusu/Kırmızısı
+        } else if (this.state === 'resting') {
+            colorHex = '#34C759'; // Huzur Yeşili/Mavisi
         }
 
         return {
@@ -148,7 +182,7 @@ class SessionTracker {
             justReachedTarget: justReachedTarget,
             triggerWork60: triggerWork60,
             triggerRest15: triggerRest15,
-            triggerRest60: triggerRest60
+            triggerRest30: triggerRest30
         };
     }
 
@@ -268,6 +302,37 @@ document.addEventListener('DOMContentLoaded', () => {
     minutesColumn.addEventListener('scroll', handleScroll);
     secondsColumn.addEventListener('scroll', handleScroll);
 
+    // --- ONESIGNAL TAG YÖNETİMİ ---
+    function updateOneSignalTags(state) {
+        try {
+            if (window.OneSignal) {
+                window.OneSignalDeferred.push(async (OneSignal) => {
+                    await OneSignal.User.addTags({
+                        session_type: state,
+                        last_action_time: new Date().toISOString()
+                    });
+                });
+            }
+        } catch(e) { console.error("OS Tag Error", e); }
+    }
+
+    // --- HAFTALIK GRAFİK ÇİZİMİ ---
+    function renderChart() {
+        const chartEl = document.getElementById('weekly-chart');
+        if (!chartEl) return;
+        const data = Analytics.getWeeklyData();
+        let maxWork = Math.max(...data.map(d => d.work), 1); 
+        
+        chartEl.innerHTML = '';
+        data.forEach(day => {
+            const height = Math.max((day.work / maxWork) * 40, 2); // Max 40px height
+            const col = document.createElement('div');
+            col.className = 'chart-col';
+            col.innerHTML = `<div class="chart-bar" style="height: ${height}px;"></div><div class="chart-label">${day.day}</div>`;
+            chartEl.appendChild(col);
+        });
+    }
+
     // --- INIT (BAŞLANGIÇ YÜKLEMESİ VE HAFIZA RESTORASYONU) ---
     if (tracker.load() && tracker.state !== 'idle') {
         switchToActiveScreen();
@@ -323,9 +388,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         tracker.startSession(hours, minutes, seconds);
+        updateOneSignalTags('working');
+        
         lblTargetTime.textContent = `${hours > 0 ? hours + 'sa ' : ''}${minutes}dk ${seconds}sn`;
         switchToActiveScreen();
         renderInterval = setInterval(updateUI, 100);
+        renderChart();
     });
 
     btnToggle.addEventListener('click', () => {
@@ -349,6 +417,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleSessionReset() {
         if(confirm("Mevcut oturumu bitirmek istediğinize emin misiniz?")) {
             tracker.reset();
+        updateOneSignalTags('idle');
+        renderChart();
             clearInterval(renderInterval);
             releaseWakeLock();
             activeScreen.classList.remove('active');
@@ -397,22 +467,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (stats.justReachedTarget) {
                 fireNotification("Hedefe Ulaşıldı! 🎉", "Belirlediğiniz çalışma süresini tamamladınız. Harika iş çıkardınız!");
+                showToast("Hedefe Ulaşıldı! 🎉");
             }
             if (stats.triggerWork60) {
-                fireNotification("Ara Uyarı ☕", "Yaklaşık 1 saattir çalışıyorsun. Mola vermeye ne dersin?");
+                fireNotification("Harika gidiyorsun! ☕", "Bir saati devirdin. Kısa bir mola zihni tazeler, hadi bir kahve al!");
+                showToast("1 Saat Devrildi! ☕");
             }
             if (stats.triggerRest15) {
-                fireNotification("Mola Bitti 💪", "Yeter bu kadar mola. Hadi işinin başına!");
+                fireNotification("Mola Bitti 💪", "15 dakikalık mola süren doldu. Odaklanmaya dönmeye ne dersin?");
+                showToast("Mola Bitti 💪");
             }
-            if (stats.triggerRest60) {
-                fireNotification("Uzun Mola 🍱", "Sanırım yemek molası verdin. Ama artık işe dönme zamanı!");
+            if (stats.triggerRest30) {
+                fireNotification("Yarım Saat Oldu 🍱", "Yarım saati geride bıraktın. Kalan vaktini iyi değerlendir, sonra işe dönme zamanı!");
+                showToast("Uzun Mola Bitiyor 🍱");
             }
 
             // Her 1 saniyede bir veriyi localStorage'a yedekle (Çökme / Kapanma Koruması)
             const currentTime = Date.now();
-            if (currentTime - tracker.lastSaveTime >= 1000) {
+            const delta = currentTime - tracker.lastSaveTime;
+            if (delta >= 1000) {
                 tracker.save();
+                if (tracker.state === 'working') Analytics.addTime('work', delta);
+                else if (tracker.state === 'resting') Analytics.addTime('rest', delta);
                 tracker.lastSaveTime = currentTime;
+                renderChart();
             }
         } catch(e) {
             console.error("UI Update Error:", e);
