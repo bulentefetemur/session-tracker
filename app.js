@@ -291,67 +291,41 @@ document.addEventListener('DOMContentLoaded', () => {
         renderInterval = setInterval(updateUI, 100);
     }
 
-    btnStart.addEventListener('click', () => {
+    btnStart.addEventListener('click', function() {
         console.log("Butona basıldı!");
-        try {
-                // --- AUDIO UNLOCK HACK (Sessiz Modu Delme) ---
-                let silentAudio = document.getElementById('silent-unlock');
-                if (!silentAudio) {
-                    silentAudio = document.createElement('audio');
-                    silentAudio.id = 'silent-unlock';
-                    silentAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
-                    document.body.appendChild(silentAudio);
-                }
-                silentAudio.play().then(() => {
-                    silentAudio.pause();
-                    silentAudio.currentTime = 0;
-                }).catch(e => console.warn("Sessiz ses çalınamadı:", e));
+        
+        // 1. OTURUM BAŞLATMA
+        const hours = getSelectedValue(hoursColumn);
+        const minutes = getSelectedValue(minutesColumn);
+        const seconds = getSelectedValue(secondsColumn);
 
-            const hours = getSelectedValue(hoursColumn);
-            const minutes = getSelectedValue(minutesColumn);
-            const seconds = getSelectedValue(secondsColumn);
-
-            if (hours === 0 && minutes === 0 && seconds === 0) {
-                alert('Lütfen geçerli bir hedef süre belirleyin.');
-                return;
-            }
-
-            // AudioContext başlatma (iOS kısıtlamasını aşmak için etkileşim anında başlatıyoruz)
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-
-            // --- AUDIO UNLOCK HACK (Always On Strategy) ---
-            if (!unlockedOsc && audioCtx) {
-                unlockedGain = audioCtx.createGain();
-                unlockedGain.gain.value = 0; // Başlangıçta tamamen sessiz
-                unlockedOsc = audioCtx.createOscillator();
-                unlockedOsc.type = 'sine';
-                unlockedOsc.connect(unlockedGain);
-                unlockedGain.connect(audioCtx.destination);
-                unlockedOsc.start();
-            }
-
-            tracker.startSession(hours, minutes, seconds);
-
-            lblTargetTime.textContent = `${hours > 0 ? hours + 'sa ' : ''}${minutes}dk ${seconds}sn`;
-            switchToActiveScreen();
-            requestWakeLock();
-            renderInterval = setInterval(updateUI, 100);
-
-            // 2. OneSignal Kaydı (Hata vermemesi için try-catch içinde)
-            try {
-                if (window.OneSignal) {
-                    OneSignal.Notifications.requestPermission();
-                    OneSignal.User.PushSubscription.optIn();
-                }
-            } catch (e) { console.log("OS Error", e); }
-        } catch (e) {
-            alert("Start Error: " + e.message);
+        if (hours === 0 && minutes === 0 && seconds === 0) {
+            alert('Lütfen geçerli bir hedef süre belirleyin.');
+            return;
         }
+
+        // 2. SES VE WAKE LOCK (Hızlı Tetikleme)
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        requestWakeLock();
+
+        // 3. ONESIGNAL HANDSHAKE (iOS User Gesture)
+        if (window.OneSignal) {
+            // Native izni fırlat ki OS pencereyi hemen açsın
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    window.OneSignalDeferred.push(async (OneSignal) => {
+                        await OneSignal.User.PushSubscription.optIn();
+                        console.log("OneSignal optIn tetiklendi.");
+                    });
+                }
+            });
+        }
+
+        tracker.startSession(hours, minutes, seconds);
+        lblTargetTime.textContent = `${hours > 0 ? hours + 'sa ' : ''}${minutes}dk ${seconds}sn`;
+        switchToActiveScreen();
+        renderInterval = setInterval(updateUI, 100);
     });
 
     btnToggle.addEventListener('click', () => {
@@ -396,22 +370,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fireNotification(title, body) {
-        try {
-            const reg = await navigator.serviceWorker.ready;
-            await reg.showNotification(title, {
-                body: body,
+        if (!("Notification" in window) || Notification.permission !== "granted") return;
+        
+        // iOS PWA için en güvenli Service Worker bildirim yolu
+        navigator.serviceWorker.getRegistration().then(reg => {
+            if (reg) {
+                reg.showNotification(title, {
+                    body: body,
                     icon: "./session_tracker.png",
                     badge: "./session_tracker.png",
-                vibrate: [200, 100, 200]
-            });
-            
-            // OneSignal API üzerinden Serverless push gönderim hazırlığı:
-            // if (window.OneSignal) {
-            //     // API Call proxy'ye yönlendirilecek
-            // }
-        } catch (e) {
-            console.error("Bildirim hatası:", e);
-        }
+                    vibrate: [200, 100, 200]
+                });
+            }
+        });
     }
 
     function updateUI() {
