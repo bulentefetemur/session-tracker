@@ -1,4 +1,4 @@
-// --- FOCUS TRACKER ENGINE v9 ---
+// --- FOCUS TRACKER ENGINE v13 ---
 class Analytics {
     static getTodayKey() {
         const d = new Date();
@@ -14,8 +14,8 @@ class Analytics {
                     id: new Date(key).getTime(),
                     workMs: data[key].work,
                     restMs: data[key].rest,
-                    startTime: 'N/A',
-                    endTime: 'N/A'
+                    start: 'N/A',
+                    end: 'N/A'
                 }];
             }
         }
@@ -57,8 +57,8 @@ class Analytics {
             
             const dayData = data[key] || [];
             const totals = dayData.reduce((acc, session) => {
-                acc.work += session.workMs;
-                acc.rest += session.restMs;
+                acc.work += session.workMs || 0;
+                acc.rest += session.restMs || 0;
                 return acc;
             }, { work: 0, rest: 0 });
 
@@ -80,6 +80,7 @@ class SessionTracker {
         this.totalRestMs = 0;
         this.phaseStartTime = 0;
         this.sessionStartTime = 0;
+        this.sessionClockStart = '';
         this.segments = [];
         this.lastSavedTime = Date.now();
         this.notifiedTarget = false;
@@ -87,7 +88,7 @@ class SessionTracker {
         localStorage.removeItem('sessionData');
     }
     save() {
-        const data = { state: this.state, targetMs: this.targetMs, totalWorkMs: this.totalWorkMs, totalRestMs: this.totalRestMs, phaseStartTime: this.phaseStartTime, sessionStartTime: this.sessionStartTime, segments: this.segments, lastSavedTime: Date.now(), notifiedTarget: this.notifiedTarget, notified60: this.notified60 };
+        const data = { state: this.state, targetMs: this.targetMs, totalWorkMs: this.totalWorkMs, totalRestMs: this.totalRestMs, phaseStartTime: this.phaseStartTime, sessionStartTime: this.sessionStartTime, sessionClockStart: this.sessionClockStart, segments: this.segments, lastSavedTime: Date.now(), notifiedTarget: this.notifiedTarget, notified60: this.notified60 };
         localStorage.setItem('sessionData', JSON.stringify(data));
     }
     load() {
@@ -106,6 +107,7 @@ class SessionTracker {
         this.targetMs = (h * 3600 + m * 60 + s) * 1000;
         this.state = 'working';
         this.sessionStartTime = Date.now();
+        this.sessionClockStart = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
         this.phaseStartTime = Date.now();
         this.notifiedTarget = false;
         this.notified60 = false;
@@ -330,8 +332,8 @@ function saveToHistory() {
         id: Date.now(),
         workMs: tracker.totalWorkMs,
         restMs: tracker.totalRestMs,
-        startTime: new Date(tracker.sessionStartTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
-        endTime: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+        start: tracker.sessionClockStart || new Date(tracker.sessionStartTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+        end: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
     };
     Analytics.saveSession(Analytics.getTodayKey(), sessionData);
 }
@@ -390,7 +392,7 @@ function renderChart(mode) {
         sessionList.innerHTML = daySessions.map(s => `
             <div style="background:#2C2C2E; padding:15px; border-radius:15px; display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                    <div style="font-size:14px; color:var(--text-secondary); margin-bottom:4px;">Oturum: ${s.startTime} - ${s.endTime}</div>
+                    <div style="font-size:14px; color:var(--text-secondary); margin-bottom:4px;">Oturum: ${s.start || 'N/A'} - ${s.end || 'N/A'}</div>
                     <div style="color:var(--dynamic-color); font-weight:600;">İş: ${formatTime(s.workMs)}</div>
                     <div style="color:#34C759; font-weight:600;">Mola: ${formatTime(s.restMs)}</div>
                 </div>
@@ -491,7 +493,7 @@ function renderProfileHistory() {
     list.innerHTML = daySessions.map(s => `
         <div style="background:#2C2C2E; padding:15px; border-radius:15px; display:flex; justify-content:space-between; align-items:center;">
             <div>
-                <div style="font-size:14px; color:var(--text-secondary); margin-bottom:4px;">Oturum: ${s.startTime} - ${s.endTime}</div>
+                <div style="font-size:14px; color:var(--text-secondary); margin-bottom:4px;">Oturum: ${s.start || 'N/A'} - ${s.end || 'N/A'}</div>
                 <div style="color:var(--dynamic-color); font-weight:600;">İş: ${formatTime(s.workMs)}</div>
                 <div style="color:#34C759; font-weight:600;">Mola: ${formatTime(s.restMs)}</div>
             </div>
