@@ -1,3 +1,6 @@
+const MAINTENANCE_MODE = false; // Bunu true yaparsak "Yakında" ekranı gelir.
+if (MAINTENANCE_MODE) document.body.classList.add('maintenance-on');
+
 class Analytics {
     static getTodayKey() {
         const d = new Date();
