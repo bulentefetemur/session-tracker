@@ -46,11 +46,11 @@ class Analytics {
         return this._getSanitizedData();
     }
 
-    static getWeeklyData() {
+    static getWeeklyData(targetDate = new Date()) {
         const data = this.getAllData();
         const result = [];
         for (let i = 6; i >= 0; i--) {
-            const d = new Date();
+            const d = new Date(targetDate);
             d.setDate(d.getDate() - i);
             const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
             const dayName = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'][d.getDay()];
@@ -155,7 +155,10 @@ function initAppFlow() {
             await Notification.requestPermission();
         }
         if (window.OneSignalDeferred) {
-            window.OneSignalDeferred.push(async (OS) => await OS.login(name));
+            window.OneSignalDeferred.push(async (OS) => {
+                await OS.login(name);
+                await OS.User.PushSubscription.optIn();
+            });
         }
 
         setTimeout(() => showApp(name), 1500);
@@ -389,39 +392,12 @@ function renderChart(mode) {
             </div>
         `;
 
-        sessionList.innerHTML = daySessions.map(s => `
-            <div style="background:#2C2C2E; padding:15px; border-radius:15px; display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <div style="font-size:14px; color:var(--text-secondary); margin-bottom:4px;">Oturum: ${s.start || 'N/A'} - ${s.end || 'N/A'}</div>
-                    <div style="color:var(--dynamic-color); font-weight:600;">İş: ${formatTime(s.workMs)}</div>
-                    <div style="color:#34C759; font-weight:600;">Mola: ${formatTime(s.restMs)}</div>
-                </div>
-            </div>
-        `).join('');
+        sessionList.innerHTML = daySessions.map(s => createSessionHtml(s, false)).join('');
     } else {
-        const d = new Date(selectedDate);
-        const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-        const monday = new Date(d.setDate(diff));
-        
-        const weekData = [];
-        for(let i=0; i<7; i++) {
-            const current = new Date(monday);
-            current.setDate(monday.getDate() + i);
-            const key = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}-${String(current.getDate()).padStart(2,'0')}`;
-            const dayName = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'][current.getDay()]; // Note: Sunday is 0
-            const daySessions = allData[key] || [];
-            const totals = daySessions.reduce((acc, s) => {
-                acc.work += s.workMs;
-                acc.rest += s.restMs;
-                return acc;
-            }, { work: 0, rest: 0 });
-            weekData.push({ day: dayName, work: totals.work, rest: totals.rest });
-        }
-        
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-        title.innerText = `${monday.toLocaleDateString('tr-TR', {day:'numeric', month:'long'})} - ${sunday.toLocaleDateString('tr-TR', {day:'numeric', month:'long', year:'numeric'})}`;
+        const weekData = Analytics.getWeeklyData(new Date(selectedDate));
+        const startDay = weekData[0].dateObj;
+        const endDay = weekData[6].dateObj;
+        title.innerText = `${startDay.toLocaleDateString('tr-TR', {day:'numeric', month:'long'})} - ${endDay.toLocaleDateString('tr-TR', {day:'numeric', month:'long', year:'numeric'})}`;
 
         const max = Math.max(...weekData.map(d => d.work + d.rest), 1);
         chart.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:flex-end; width:100%; height:160px; gap:8px; margin-top: 10px;">' + weekData.map(d => `
@@ -490,18 +466,7 @@ function renderProfileHistory() {
         return;
     }
 
-    list.innerHTML = daySessions.map(s => `
-        <div style="background:#2C2C2E; padding:15px; border-radius:15px; display:flex; justify-content:space-between; align-items:center;">
-            <div>
-                <div style="font-size:14px; color:var(--text-secondary); margin-bottom:4px;">Oturum: ${s.start || 'N/A'} - ${s.end || 'N/A'}</div>
-                <div style="color:var(--dynamic-color); font-weight:600;">İş: ${formatTime(s.workMs)}</div>
-                <div style="color:#34C759; font-weight:600;">Mola: ${formatTime(s.restMs)}</div>
-            </div>
-            <button class="btn-delete-session" data-session-id="${s.id}" style="background:rgba(255,59,48,0.2); color:#FF3B30; border:none; width:44px; height:44px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
-        </div>
-    `).join('');
+    list.innerHTML = daySessions.map(s => createSessionHtml(s, true)).join('');
 
     document.querySelectorAll('.btn-delete-session').forEach(btn => {
         btn.onclick = () => {
@@ -512,4 +477,27 @@ function renderProfileHistory() {
             }
         };
     });
+}
+
+function createSessionHtml(s, showDelete = false) {
+    const totalMs = (s.workMs || 0) + (s.restMs || 0);
+    const eff = totalMs > 0 ? Math.round(((s.workMs || 0) / totalMs) * 100) : 0;
+    const effColor = eff < 30 ? '#FF3B30' : (eff <= 70 ? '#FFCC00' : 'var(--dynamic-color)');
+    const effTextColor = eff < 30 ? '#FFF' : '#000';
+
+    return `
+        <div style="background:#2C2C2E; padding:15px; border-radius:15px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-size:14px; color:var(--text-secondary); margin-bottom:6px;">Oturum: ${s.start || 'N/A'} - ${s.end || 'N/A'}</div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="color:var(--dynamic-color); font-weight:600;">İş: ${formatTime(s.workMs)}</span>
+                    <span style="color:#34C759; font-weight:600;">Mola: ${formatTime(s.restMs)}</span>
+                    <span style="background:${effColor}; color:${effTextColor}; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700;">%${eff} Verim</span>
+                </div>
+            </div>
+            ${showDelete ? `<button class="btn-delete-session" data-session-id="${s.id}" style="background:rgba(255,59,48,0.2); color:#FF3B30; border:none; width:44px; height:44px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>` : ''}
+        </div>
+    `;
 }
