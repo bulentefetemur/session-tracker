@@ -150,12 +150,11 @@
 
         /* BOTTOM NAV */
         .bottom-nav {
-            position: absolute;
+            position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
             height: 95px;
-            height: 95px; /* Biraz yükseltiyoruz */
             padding-bottom: env(safe-area-inset-bottom, 20px); /* Yazıları yukarı itiyoruz */
             display: flex;
             justify-content: space-around;
@@ -165,7 +164,6 @@
             -webkit-backdrop-filter: blur(25px);
             border-top: 1px solid var(--glass-border);
             z-index: 100;
-            padding-bottom: env(safe-area-inset-bottom, 20px);
         }
 
         .nav-item {
@@ -319,6 +317,74 @@
             color: rgba(255,255,255,0.2);
             margin-top: auto;
             padding-bottom: 20px;
+        }
+
+        /* --- YENİDEN EKLENEN SAYAÇ (PICKER) STİLLERİ --- */
+        .picker-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 2;
+        }
+
+        .picker-column {
+            height: 150px;
+            width: 60px;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .picker-column::-webkit-scrollbar {
+            display: none;
+        }
+
+        .picker-column::before,
+        .picker-column::after {
+            content: '';
+            display: block;
+            height: 50px;
+        }
+
+        .picker-item {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            font-size: 42px;
+            font-weight: 600;
+            scroll-snap-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .picker-group label {
+            color: var(--text-secondary);
+            font-size: 15px;
+            font-weight: 500;
+            pointer-events: none; /* Etiketin kaydırmayı engellemesini önler */
+        }
+
+        .picker-highlight {
+            position: absolute;
+            top: 50%;
+            left: 16px;
+            right: 16px;
+            height: 50px;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            pointer-events: none; /* Işıklandırmanın dokunmayı engellemesini önler */
+            z-index: 1;
+        }
+
+        .picker-separator {
+            font-size: 48px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            z-index: 2;
+            pointer-events: none; /* İki nokta (:) işaretinin kaydırmayı engellemesini önler */
         }
 
         .toggle-btn {

@@ -186,6 +186,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 setup.classList.remove('hidden');
             }
         });
+
+        // --- ANALYTICS VIEW TOGGLES ---
+        const btnDaily = document.getElementById('btn-daily-view');
+        const btnWeekly = document.getElementById('btn-weekly-view');
+        if (btnDaily && btnWeekly) {
+            btnDaily.addEventListener('click', () => {
+                btnDaily.classList.add('active');
+                btnWeekly.classList.remove('active');
+                renderChart();
+            });
+            btnWeekly.addEventListener('click', () => {
+                btnWeekly.classList.add('active');
+                btnDaily.classList.remove('active');
+                renderChart();
+            });
+        }
     }
 
     // --- UI HELPERS ---
