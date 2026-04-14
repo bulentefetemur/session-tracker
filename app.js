@@ -1,5 +1,5 @@
 // --- FOCUS TRACKER ENGINE v13 ---
-console.log("v20-FINAL-STABLE-ACTIVE");
+console.log("v22-STOPWATCH-PRECISION-ACTIVE");
 class Analytics {
     static getTodayKey() {
         const d = new Date();
@@ -243,12 +243,12 @@ function setupEventListeners() {
 function startUIUpdate() {
     document.getElementById('setup-screen').style.display = 'none';
     document.getElementById('active-screen').style.display = 'block';
-    uiInterval = setInterval(updateUI, 100);
+    uiInterval = setInterval(updateUI, 30);
 }
 
 async function fireNotification(title, body) {
     console.log(`[Notification Triggered] ${title}: ${body}`);
-    if (window.OneSignalDeferred) {
+    if (window.OneSignalDeferred) { // Send tags for potential backend journeys
         window.OneSignalDeferred.push(async (OS) => {
             await OS.User.addTag("notification_title", title);
             await OS.User.addTag("notification_body", body);
@@ -257,6 +257,23 @@ async function fireNotification(title, body) {
                 await OS.Notifications.displaySelfHostedPrompt();
             }
         });
+    }
+
+    // Use immediate PWA notification for instant feedback
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg && reg.showNotification) {
+            await reg.showNotification(title, {
+                body: body,
+                icon: "./session_tracker.png",
+                badge: "./session_tracker.png",
+                vibrate: [200, 100, 200]
+            });
+        }
+    } catch (err) { 
+        console.error("Notification Error:", err); 
     }
 }
 
@@ -267,8 +284,8 @@ function updateUI() {
     let currentRest = tracker.totalRestMs + (tracker.state === 'resting' ? phaseElapsed : 0);
 
     // Target Sync
-    document.getElementById('lbl-target-time').innerText = formatTime(tracker.targetMs);
-    document.getElementById('lbl-current-timer').innerText = formatTime(phaseElapsed);
+    document.getElementById('lbl-target-time').innerText = formatTime(tracker.targetMs, false);
+    document.getElementById('lbl-current-timer').innerText = formatTime(phaseElapsed, true);
     document.getElementById('lbl-current-state').innerText = tracker.state === 'working' ? 'Çalışıyor' : 'Mola Veriliyor';
     document.documentElement.style.setProperty('--dynamic-color', tracker.state === 'resting' ? '#34C759' : '#FF9500');
 
@@ -280,14 +297,14 @@ function updateUI() {
 
     // Summary & Segments
     const total = (currentWork + currentRest) || 1;
-    document.getElementById('segment-summary').innerHTML = `İş: ${formatTime(currentWork)} (%${Math.round(currentWork/total*100)}) | Mola: ${formatTime(currentRest)} (%${Math.round(currentRest/total*100)})`;
+    document.getElementById('segment-summary').innerHTML = `İş: ${formatTime(currentWork, false)} (%${Math.round(currentWork/total*100)}) | Mola: ${formatTime(currentRest, false)} (%${Math.round(currentRest/total*100)})`;
 
     const list = document.getElementById('segment-list');
     const allSegs = [...tracker.segments, {type: tracker.state, duration: phaseElapsed}];
     list.innerHTML = allSegs.reverse().map((seg, i) => `
         <div style="display:flex; justify-content:space-between; padding:10px; background:#2C2C2E; border-radius:10px; border-left:4px solid ${seg.type==='working'?'#FF9500':'#34C759'}">
             <span>${seg.type==='working'?'Oturum':'Mola'}</span>
-            <span>${formatTime(seg.duration)}</span>
+            <span>${formatTime(seg.duration, false)}</span>
         </div>
     `).join('');
 
@@ -306,11 +323,16 @@ function updateUI() {
 
 }
 
-function formatTime(ms) {
-    const s = Math.floor(ms / 1000);
-    const m = Math.floor(s / 60);
-    const h = Math.floor(m / 60);
-    return `${String(h).padStart(2,'0')}:${String(m%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+function formatTime(ms, showCentiseconds = false) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    const cs = Math.floor((ms % 1000) / 10);
+
+    const timeString = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+    return showCentiseconds ? `${timeString}.${String(cs).padStart(2, '0')}` : timeString;
 }
 
 function populatePickers() {
@@ -328,12 +350,22 @@ function getPickerValue(id) {
 }
 
 function saveToHistory() {
-    if (tracker.totalWorkMs < 1000) return; // Don't save trivial sessions
+    const finalElapsed = Date.now() - tracker.phaseStartTime;
+    let finalWorkMs = tracker.totalWorkMs;
+    let finalRestMs = tracker.totalRestMs;
+
+    if (tracker.state === 'working') {
+        finalWorkMs += finalElapsed;
+    } else if (tracker.state === 'resting') {
+        finalRestMs += finalElapsed;
+    }
+
+    if (finalWorkMs < 1000) return; // Don't save trivial sessions
 
     const sessionData = {
         id: Date.now(),
-        workMs: tracker.totalWorkMs,
-        restMs: tracker.totalRestMs,
+        workMs: finalWorkMs,
+        restMs: finalRestMs,
         start: tracker.sessionClockStart || new Date(tracker.sessionStartTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
         end: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
     };
@@ -381,11 +413,11 @@ function renderChart(mode) {
                 <div style="display:flex; justify-content:space-around; width:100%; margin-top:24px;">
                     <div style="text-align:center;">
                         <div style="font-size:11px; color:var(--text-secondary); margin-bottom:4px;">ÇALIŞMA</div>
-                        <div style="color:var(--dynamic-color); font-weight:600; font-size:18px;">${formatTime(dayTotals.work)}</div>
+                        <div style="color:var(--dynamic-color); font-weight:600; font-size:18px;">${formatTime(dayTotals.work, false)}</div>
                     </div>
                     <div style="text-align:center;">
                         <div style="font-size:11px; color:var(--text-secondary); margin-bottom:4px;">MOLA</div>
-                        <div style="color:#34C759; font-weight:600; font-size:18px;">${formatTime(dayTotals.rest)}</div>
+                        <div style="color:#34C759; font-weight:600; font-size:18px;">${formatTime(dayTotals.rest, false)}</div>
                     </div>
                 </div>
             </div>
@@ -515,8 +547,8 @@ function createSessionHtml(s, showDelete = false) {
             <div>
                 <div style="font-size:14px; color:var(--text-secondary); margin-bottom:6px;">Oturum: ${s.start || 'N/A'} - ${s.end || 'N/A'}</div>
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <span style="color:var(--dynamic-color); font-weight:600;">İş: ${formatTime(s.workMs)}</span>
-                    <span style="color:#34C759; font-weight:600;">Mola: ${formatTime(s.restMs)}</span>
+                    <span style="color:var(--dynamic-color); font-weight:600;">İş: ${formatTime(s.workMs, false)}</span>
+                    <span style="color:#34C759; font-weight:600;">Mola: ${formatTime(s.restMs, false)}</span>
                     <span style="background:${effColor}; color:${effTextColor}; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700;">%${eff} Verim</span>
                 </div>
             </div>

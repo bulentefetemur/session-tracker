@@ -157,14 +157,14 @@
             position: fixed;
             bottom: 0;
             width: 100%;
-            height: 90px;
+            height: 90px; /* Retained for ample touch area */
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
             border-top: 1px solid var(--glass-border);
             display: flex;
             justify-content: space-around;
             align-items: center;
-            padding-bottom: env(safe-area-inset-bottom, 20px) !important;
+            padding-bottom: env(safe-area-inset-bottom, 15px) !important; /* Reduced for closer alignment */
             z-index: 2000;
         }
 
@@ -177,6 +177,16 @@
             font-size: 11px;
             cursor: pointer;
             transition: 0.3s;
+            height: 100%; /* Allow flex to center content vertically */
+        }
+
+        .nav-item svg {
+            margin-bottom: 0; /* Explicitly set */
+        }
+
+        .nav-item span {
+            font-size: 10px;
+            margin-top: 2px; /* Added space between icon and text */
         }
 
         .nav-item.active {
@@ -210,6 +220,7 @@
             text-align: center;
             margin: 30px 0;
             font-variant-numeric: tabular-nums;
+            letter-spacing: -2px; /* Added for better fit with centiseconds */
         }
 
         .progress-pill {
