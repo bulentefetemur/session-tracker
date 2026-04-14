@@ -400,15 +400,23 @@ function renderChart(mode) {
         title.innerText = `${startDay.toLocaleDateString('tr-TR', {day:'numeric', month:'long'})} - ${endDay.toLocaleDateString('tr-TR', {day:'numeric', month:'long', year:'numeric'})}`;
 
         const max = Math.max(...weekData.map(d => d.work + d.rest), 1);
-        chart.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:flex-end; width:100%; height:160px; gap:8px; margin-top: 10px;">' + weekData.map(d => `
-            <div style="display:flex; flex-direction:column; align-items:center; flex:1; gap:8px;">
-                <div style="width:100%; display:flex; flex-direction:column-reverse; border-radius:4px; overflow:hidden; min-height:4px; background:#2c2c2e; height: ${((d.work + d.rest) / max) * 100}%;">
-                    <div style="width:100%; background:var(--dynamic-color); height: ${((d.work) / (d.work + d.rest || 1)) * 100}%"></div>
-                    <div style="width:100%; background:#34C759; height: ${((d.rest) / (d.work + d.rest || 1)) * 100}%"></div>
+        chart.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:flex-end; width:100%; height:160px; gap:8px; margin-top: 10px;">' + weekData.map(d => {
+            const totalMs = d.work + d.rest;
+            const isZero = totalMs === 0;
+            const containerHeight = isZero ? '4px' : `${(totalMs / max) * 100}%`;
+            const workHeight = isZero ? 0 : (d.work / totalMs) * 100;
+            const restHeight = isZero ? 0 : (d.rest / totalMs) * 100;
+            
+            return `
+                <div style="display:flex; flex-direction:column; align-items:center; flex:1; gap:8px;">
+                    <div style="width:100%; display:flex; flex-direction:column-reverse; border-radius:4px; overflow:hidden; min-height:4px; background:#2c2c2e; height: ${containerHeight};">
+                        ${!isZero ? `<div style="width:100%; background:var(--dynamic-color); height: ${workHeight}%"></div>
+                        <div style="width:100%; background:#34C759; height: ${restHeight}%"></div>` : ''}
+                    </div>
+                    <div style="font-size:10px; color:var(--text-secondary);">${d.day}</div>
                 </div>
-                <div style="font-size:10px; color:var(--text-secondary);">${d.day}</div>
-            </div>
-        `).join('') + '</div>';
+            `;
+        }).join('') + '</div>';
         sessionBox.style.display = 'none';
     }
 }
