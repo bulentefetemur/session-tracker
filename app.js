@@ -246,13 +246,24 @@ function startUIUpdate() {
 }
 
 async function fireNotification(title, body) {
-    if (window.OneSignalDeferred) {
-        window.OneSignalDeferred.push(async (OS) => {
-            // OneSignal üzerinden tag tabanlı push bildirimi tetiklemesi
-            await OS.User.addTag("notification_title", title);
-            await OS.User.addTag("notification_body", body);
-            await OS.User.addTag("notification_trigger", String(Date.now()));
-        });
+    console.log(`[Notification Triggered] ${title}: ${body}`);
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg && reg.showNotification) {
+            await reg.showNotification(title, {
+                body: body,
+                icon: "./session_tracker.png",
+                badge: "./session_tracker.png",
+                vibrate: [200, 100, 200]
+            });
+        } else {
+            new Notification(title, { body: body, icon: "./session_tracker.png" });
+        }
+    } catch (err) { 
+        console.error("Notification Error:", err); 
+        new Notification(title, { body: body, icon: "./session_tracker.png" });
     }
 }
 

@@ -21,6 +21,11 @@
                 serviceWorkerParam: { scope: '/' },
                 allowLocalhostAsSecureOrigin: true
             });
+            
+            OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event) => {
+                event.preventDefault();
+                event.notification.display();
+            });
         });
     </script>
     <style>
@@ -152,14 +157,14 @@
             position: fixed;
             bottom: 0;
             width: 100%;
-            height: 75px;
+            height: 85px;
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
             border-top: 1px solid var(--glass-border);
             display: flex;
             justify-content: space-around;
             align-items: center;
-            padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+            padding-bottom: env(safe-area-inset-bottom, 12px) !important;
             z-index: 2000;
         }
 
@@ -168,13 +173,12 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             font-size: 11px;
             cursor: pointer;
             transition: 0.3s;
-        }
-
-        .nav-item svg {
-            margin-bottom: -10px;
+            gap: 5px;
+            margin-top: 8px;
         }
 
         .nav-item.active {
