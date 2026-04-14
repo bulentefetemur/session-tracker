@@ -11,6 +11,11 @@ class Analytics {
         data[key][type] += ms;
         localStorage.setItem('trackerAnalytics', JSON.stringify(data));
     }
+    static deleteData(key) {
+        let data = JSON.parse(localStorage.getItem('trackerAnalytics') || '{}');
+        delete data[key];
+        localStorage.setItem('trackerAnalytics', JSON.stringify(data));
+    }
     static getAllData() {
         return JSON.parse(localStorage.getItem('trackerAnalytics') || '{}');
     }
@@ -88,6 +93,8 @@ class SessionTracker {
 const tracker = new SessionTracker();
 let uiInterval;
 let currentCalDate = new Date();
+let selectedProfileDate = Analytics.getTodayKey();
+let currentChartMode = 'daily';
 
 document.addEventListener('DOMContentLoaded', () => {
     initAppFlow();
@@ -143,6 +150,14 @@ function setupEventListeners() {
         };
     });
 
+    // Analytics Date Picker
+    const datePicker = document.getElementById('analytics-date-picker');
+    if (datePicker) {
+        datePicker.value = Analytics.getTodayKey();
+        datePicker.max = Analytics.getTodayKey();
+        datePicker.onchange = () => renderChart(currentChartMode);
+    }
+
     // Session Control
     document.getElementById('btn-start-session').onclick = () => {
         const h = getPickerValue('picker-hours');
@@ -191,7 +206,8 @@ function startUIUpdate() {
 async function fireNotification(title, body) {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
     
-    navigator.serviceWorker.getRegistration().then(reg => {
+    try {
+        const reg = await navigator.serviceWorker.ready;
         if (reg) {
             reg.showNotification(title, {
                 body: body,
@@ -200,7 +216,7 @@ async function fireNotification(title, body) {
                 vibrate: [200, 100, 200]
             });
         }
-    });
+    } catch (err) { console.error("Notification Error:", err); }
 }
 
 function updateUI() {
@@ -276,13 +292,23 @@ function saveToHistory() {
 }
 
 function renderChart(mode) {
+    currentChartMode = mode;
     const chart = document.getElementById('analytics-chart');
-    const data = Analytics.getWeeklyData();
+    const title = document.getElementById('chart-title');
+    const picker = document.getElementById('analytics-date-picker');
+    const selectedDate = picker ? picker.value : Analytics.getTodayKey();
+    const allData = Analytics.getAllData();
     
     if (mode === 'daily') {
-        const today = data[data.length - 1];
-        const total = (today.work + today.rest) || 1;
-        const workPerc = (today.work / total) * 100;
+        title.innerText = "Günlük Analiz";
+        const todayData = allData[selectedDate] || {work: 0, rest: 0};
+        const total = (todayData.work + todayData.rest) || 1;
+        const workPerc = (todayData.work / total) * 100;
+        
+        if (todayData.work === 0 && todayData.rest === 0) {
+            chart.innerHTML = `<div style="text-align:center; padding:40px 0; color:var(--text-secondary);">Bu tarihte veri bulunamadı.</div>`;
+            return;
+        }
         
         chart.innerHTML = `
             <div style="display:flex; flex-direction:column; align-items:center; width:100%; padding: 10px 0;">
@@ -295,18 +321,36 @@ function renderChart(mode) {
                 <div style="display:flex; justify-content:space-around; width:100%; margin-top:24px;">
                     <div style="text-align:center;">
                         <div style="font-size:11px; color:var(--text-secondary); margin-bottom:4px;">ÇALIŞMA</div>
-                        <div style="color:var(--dynamic-color); font-weight:600; font-size:18px;">${formatTime(today.work)}</div>
+                        <div style="color:var(--dynamic-color); font-weight:600; font-size:18px;">${formatTime(todayData.work)}</div>
                     </div>
                     <div style="text-align:center;">
                         <div style="font-size:11px; color:var(--text-secondary); margin-bottom:4px;">MOLA</div>
-                        <div style="color:#34C759; font-weight:600; font-size:18px;">${formatTime(today.rest)}</div>
+                        <div style="color:#34C759; font-weight:600; font-size:18px;">${formatTime(todayData.rest)}</div>
                     </div>
                 </div>
             </div>
         `;
     } else {
-        const max = Math.max(...data.map(d => d.work + d.rest), 1);
-        chart.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:flex-end; width:100%; height:160px; gap:8px; margin-top: 10px;">' + data.map(d => `
+        const d = new Date(selectedDate);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        const monday = new Date(d.setDate(diff));
+        
+        const weekData = [];
+        for(let i=0; i<7; i++) {
+            const current = new Date(monday);
+            current.setDate(monday.getDate() + i);
+            const key = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}-${String(current.getDate()).padStart(2,'0')}`;
+            const dayName = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'][current.getDay()];
+            weekData.push({ day: dayName, work: allData[key]?.work || 0, rest: allData[key]?.rest || 0 });
+        }
+        
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        title.innerText = `${monday.toLocaleDateString('tr-TR', {day:'numeric', month:'long'})} - ${sunday.toLocaleDateString('tr-TR', {day:'numeric', month:'long', year:'numeric'})}`;
+
+        const max = Math.max(...weekData.map(d => d.work + d.rest), 1);
+        chart.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:flex-end; width:100%; height:160px; gap:8px; margin-top: 10px;">' + weekData.map(d => `
             <div style="display:flex; flex-direction:column; align-items:center; flex:1; gap:8px;">
                 <div style="width:100%; display:flex; flex-direction:column-reverse; border-radius:4px; overflow:hidden; min-height:4px; background:#2c2c2e; height: ${((d.work + d.rest) / max) * 100}%;">
                     <div style="width:100%; background:var(--dynamic-color); height: ${((d.work) / (d.work + d.rest || 1)) * 100}%"></div>
@@ -321,6 +365,7 @@ function renderChart(mode) {
 function renderCalendar() {
     const grid = document.getElementById('calendar-grid');
     grid.innerHTML = '';
+    const data = Analytics.getAllData();
     
     const year = currentCalDate.getFullYear();
     const month = currentCalDate.getMonth();
@@ -335,11 +380,57 @@ function renderCalendar() {
     
     const today = new Date();
     const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+    const todayKey = Analytics.getTodayKey();
 
     for(let i=0; i<startOffset; i++) grid.innerHTML += `<div></div>`; // Boşluklar
     
     for(let i=1; i<=days; i++) {
-        const isToday = isCurrentMonth && today.getDate() === i;
-        grid.innerHTML += `<div class="cal-day ${isToday ? 'today' : ''}">${i}</div>`;
+        const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+        const isToday = dateKey === todayKey;
+        const isSelected = dateKey === selectedProfileDate;
+        const hasData = data[dateKey] && (data[dateKey].work > 0 || data[dateKey].rest > 0);
+        
+        grid.innerHTML += `<div class="cal-day ${isToday ? 'today' : ''} ${isSelected ? 'active' : ''}" data-key="${dateKey}" style="cursor:pointer;">
+            ${i}
+            ${hasData ? '<div class="cal-dot"></div>' : ''}
+        </div>`;
     }
+    
+    document.querySelectorAll('.cal-day[data-key]').forEach(el => {
+        el.onclick = () => {
+            selectedProfileDate = el.dataset.key;
+            renderCalendar();
+            renderProfileHistory();
+        };
+    });
+    renderProfileHistory();
+}
+
+function renderProfileHistory() {
+    const list = document.getElementById('profile-history-list');
+    const data = Analytics.getAllData()[selectedProfileDate];
+    if (!data || (data.work === 0 && data.rest === 0)) {
+        list.innerHTML = `<div style="text-align:center; color:var(--text-secondary); padding: 20px;">Bu tarihte kayıtlı veri yok.</div>`;
+        return;
+    }
+    list.innerHTML = `
+        <div style="background:#2C2C2E; padding:15px; border-radius:15px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-size:14px; color:var(--text-secondary); margin-bottom:4px;">${selectedProfileDate.split('-').reverse().join('.')} Özeti</div>
+                <div style="color:var(--dynamic-color); font-weight:600;">İş: ${formatTime(data.work)}</div>
+                <div style="color:#34C759; font-weight:600;">Mola: ${formatTime(data.rest)}</div>
+            </div>
+            <button id="btn-delete-record" style="background:rgba(255,59,48,0.2); color:#FF3B30; border:none; padding:10px 15px; border-radius:10px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:6px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                Sil
+            </button>
+        </div>
+    `;
+    document.getElementById('btn-delete-record').onclick = () => {
+        if(confirm("Bu tarihteki tüm veriler kalıcı olarak silinecek. Emin misiniz?")) {
+            Analytics.deleteData(selectedProfileDate);
+            renderCalendar();
+            if (currentChartMode) renderChart(currentChartMode);
+        }
+    };
 }

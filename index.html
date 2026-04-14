@@ -138,7 +138,7 @@
             position: absolute;
             inset: 0;
             bottom: 90px;
-            padding: env(safe-area-inset-top) 20px 100px;
+            padding: calc(env(safe-area-inset-top) + 40px) 20px 100px;
             display: none;
             flex-direction: column;
             overflow-y: auto;
@@ -387,6 +387,9 @@
                     <button class="toggle-btn active" id="btn-daily-view">Günlük</button>
                     <button class="toggle-btn" id="btn-weekly-view">Haftalık</button>
                 </div>
+            <div style="text-align:center; margin-bottom:20px;">
+                <input type="date" id="analytics-date-picker" style="background:#2C2C2E; color:#fff; border:none; padding:12px 20px; border-radius:12px; outline:none; font-family:inherit; font-size:15px; width:100%; max-width:250px; text-align:center;">
+            </div>
                 <div id="analytics-container" style="background:#1C1C1E; padding:20px; border-radius:20px;">
                     <h4 id="chart-title">Verimlilik</h4>
                     <div id="analytics-chart"
