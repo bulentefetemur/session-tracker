@@ -157,14 +157,14 @@
             position: fixed;
             bottom: 0;
             width: 100%;
-            height: 85px;
+            height: 90px;
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
             border-top: 1px solid var(--glass-border);
             display: flex;
             justify-content: space-around;
             align-items: center;
-            padding-bottom: env(safe-area-inset-bottom, 12px) !important;
+            padding-bottom: env(safe-area-inset-bottom, 20px) !important;
             z-index: 2000;
         }
 
@@ -177,8 +177,6 @@
             font-size: 11px;
             cursor: pointer;
             transition: 0.3s;
-            gap: 5px;
-            margin-top: 8px;
         }
 
         .nav-item.active {
@@ -254,10 +252,28 @@
             cursor: pointer;
             font-weight: 600;
         }
-
+        
         .toggle-btn.active {
             background: var(--dynamic-color);
             color: #000;
+        }
+
+        /* HAFTALIK GRAFİK SÜTUNLARI */
+        .stacked-bar-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column-reverse; /* Barları alttan üste dizer */
+            border-radius: 4px;
+            overflow: hidden;
+            min-height: 10px; /* Görünürlük için min-yükseklik */
+            background: #2c2c2e; /* Boş veri için arka plan */
+            transition: transform 0.2s ease;
+            border: 1px solid rgba(255,255,255,0.05);
+            height: 150px; /* Sabit yükseklik */
+        }
+
+        .chart-col:active .stacked-bar-container {
+            transform: scale(1.05);
         }
 
         /* CALENDAR */

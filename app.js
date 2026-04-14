@@ -1,4 +1,5 @@
 // --- FOCUS TRACKER ENGINE v13 ---
+console.log("v20-FINAL-STABLE-ACTIVE");
 class Analytics {
     static getTodayKey() {
         const d = new Date();
@@ -247,23 +248,15 @@ function startUIUpdate() {
 
 async function fireNotification(title, body) {
     console.log(`[Notification Triggered] ${title}: ${body}`);
-    if (!("Notification" in window) || Notification.permission !== "granted") return;
-    
-    try {
-        const reg = await navigator.serviceWorker.ready;
-        if (reg && reg.showNotification) {
-            await reg.showNotification(title, {
-                body: body,
-                icon: "./session_tracker.png",
-                badge: "./session_tracker.png",
-                vibrate: [200, 100, 200]
-            });
-        } else {
-            new Notification(title, { body: body, icon: "./session_tracker.png" });
-        }
-    } catch (err) { 
-        console.error("Notification Error:", err); 
-        new Notification(title, { body: body, icon: "./session_tracker.png" });
+    if (window.OneSignalDeferred) {
+        window.OneSignalDeferred.push(async (OS) => {
+            await OS.User.addTag("notification_title", title);
+            await OS.User.addTag("notification_body", body);
+            await OS.User.addTag("notification_trigger", String(Date.now()));
+            if (OS.Notifications && OS.Notifications.displaySelfHostedPrompt) {
+                await OS.Notifications.displaySelfHostedPrompt();
+            }
+        });
     }
 }
 
@@ -412,8 +405,14 @@ function renderChart(mode) {
             const totalMs = d.work + d.rest;
             const isZero = totalMs === 0;
             
-            const workHeightPerc = isZero ? 0 : Math.max((d.work / max) * 100, 10);
-            const restHeightPerc = isZero ? 0 : Math.max((d.rest / max) * 100, 10);
+            let dayPerc = isZero ? 0 : (totalMs / max) * 100;
+            if (!isZero && dayPerc < 15) dayPerc = 15;
+            
+            const workRatio = isZero ? 0 : d.work / totalMs;
+            const restRatio = isZero ? 0 : d.rest / totalMs;
+            
+            const workHeightPerc = dayPerc * workRatio;
+            const restHeightPerc = dayPerc * restRatio;
             
             const workPx = (workHeightPerc / 100) * 150;
             const restPx = (restHeightPerc / 100) * 150;
@@ -423,7 +422,7 @@ function renderChart(mode) {
             
             return `
                 <div style="display:flex; flex-direction:column; align-items:center; flex:1; gap:8px;">
-                    <div style="width:100%; display:flex; flex-direction:column-reverse; border-radius:4px; overflow:hidden; min-height:10px; height:150px; background:#2c2c2e;">
+                    <div class="stacked-bar-container" style="width:100%; display:flex; flex-direction:column-reverse; border-radius:4px; overflow:hidden; min-height:10px; height:150px; background:#2c2c2e; border: 1px solid rgba(255,255,255,0.05);">
                         ${!isZero ? `<div style="width:100%; background:var(--dynamic-color); height: ${workHeightPerc}%; display:flex; align-items:center; justify-content:center;">
                             ${workPx >= 15 ? `<span style="color:#1C1C1E; font-size:10px; font-weight:700;">%${workPercDisplay}</span>` : ''}
                         </div>
