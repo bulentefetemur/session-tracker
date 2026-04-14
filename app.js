@@ -246,23 +246,13 @@ function startUIUpdate() {
 }
 
 async function fireNotification(title, body) {
-    if (!("Notification" in window) || Notification.permission !== "granted") return;
-    
-    try {
-        const reg = await navigator.serviceWorker.ready;
-        if (reg && reg.showNotification) {
-            reg.showNotification(title, {
-                body: body,
-                icon: "./session_tracker.png",
-                badge: "./session_tracker.png",
-                vibrate: [200, 100, 200]
-            });
-        } else {
-            new Notification(title, { body: body, icon: "./session_tracker.png" });
-        }
-    } catch (err) { 
-        console.error("Notification Error:", err); 
-        new Notification(title, { body: body, icon: "./session_tracker.png" });
+    if (window.OneSignalDeferred) {
+        window.OneSignalDeferred.push(async (OS) => {
+            // OneSignal üzerinden tag tabanlı push bildirimi tetiklemesi
+            await OS.User.addTag("notification_title", title);
+            await OS.User.addTag("notification_body", body);
+            await OS.User.addTag("notification_trigger", String(Date.now()));
+        });
     }
 }
 
@@ -410,14 +400,25 @@ function renderChart(mode) {
         chart.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:flex-end; width:100%; height:160px; gap:8px; margin-top: 10px;">' + weekData.map(d => {
             const totalMs = d.work + d.rest;
             const isZero = totalMs === 0;
-            const workHeight = isZero ? 0 : Math.max((d.work / max) * 100, 10);
-            const restHeight = isZero ? 0 : Math.max((d.rest / max) * 100, 10);
+            
+            const workHeightPerc = isZero ? 0 : Math.max((d.work / max) * 100, 10);
+            const restHeightPerc = isZero ? 0 : Math.max((d.rest / max) * 100, 10);
+            
+            const workPx = (workHeightPerc / 100) * 150;
+            const restPx = (restHeightPerc / 100) * 150;
+
+            const workPercDisplay = totalMs > 0 ? Math.round((d.work / totalMs) * 100) : 0;
+            const restPercDisplay = totalMs > 0 ? Math.round((d.rest / totalMs) * 100) : 0;
             
             return `
                 <div style="display:flex; flex-direction:column; align-items:center; flex:1; gap:8px;">
                     <div style="width:100%; display:flex; flex-direction:column-reverse; border-radius:4px; overflow:hidden; min-height:10px; height:150px; background:#2c2c2e;">
-                        ${!isZero ? `<div style="width:100%; background:var(--dynamic-color); height: ${workHeight}%;"></div>
-                        <div style="width:100%; background:#34C759; height: ${restHeight}%;"></div>` : ''}
+                        ${!isZero ? `<div style="width:100%; background:var(--dynamic-color); height: ${workHeightPerc}%; display:flex; align-items:center; justify-content:center;">
+                            ${workPx >= 15 ? `<span style="color:#1C1C1E; font-size:10px; font-weight:700;">%${workPercDisplay}</span>` : ''}
+                        </div>
+                        <div style="width:100%; background:#34C759; height: ${restHeightPerc}%; display:flex; align-items:center; justify-content:center;">
+                            ${restPx >= 15 ? `<span style="color:#1C1C1E; font-size:10px; font-weight:700;">%${restPercDisplay}</span>` : ''}
+                        </div>` : ''}
                     </div>
                     <div style="font-size:10px; color:var(--text-secondary);">${d.day}</div>
                 </div>
