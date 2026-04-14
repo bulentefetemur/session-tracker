@@ -194,12 +194,12 @@ document.addEventListener('DOMContentLoaded', () => {
             btnDaily.addEventListener('click', () => {
                 btnDaily.classList.add('active');
                 btnWeekly.classList.remove('active');
-                renderChart();
+                renderChart('daily');
             });
             btnWeekly.addEventListener('click', () => {
                 btnWeekly.classList.add('active');
                 btnDaily.classList.remove('active');
-                renderChart();
+                renderChart('weekly');
             });
         }
     }
@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateUI() {
         const s = tracker.getCurrentStats();
-        document.documentElement.style.setProperty('--dynamic-color', s.state === 'resting' ? '#34C759' : '#FF3B30');
+        document.documentElement.style.setProperty('--dynamic-color', s.state === 'resting' ? '#34C759' : '#FF9500');
         document.getElementById('lbl-current-timer').innerText = formatTime(s.phaseElapsed);
         document.getElementById('lbl-percentage').innerText = `%${Math.floor(s.progress || 0)}`;
         document.getElementById('stat-work-time').innerText = formatTime(s.curWork);
@@ -251,7 +251,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
-        if (tabId === 'analytics-tab') renderChart();
+        if (tabId === 'analytics-tab') {
+            const isWeekly = document.getElementById('btn-weekly-view').classList.contains('active');
+            renderChart(isWeekly ? 'weekly' : 'daily');
+        }
         if (tabId === 'profile-tab') updateProfileStats();
     }
 
@@ -259,16 +262,28 @@ document.addEventListener('DOMContentLoaded', () => {
         item.addEventListener('click', () => switchTab(item.dataset.tab));
     });
 
-    function renderChart() {
+    function renderChart(mode = 'daily') {
         const chart = document.getElementById('analytics-chart');
-        const data = Analytics.getWeeklyData();
-        const max = Math.max(...data.map(d => d.work), 1);
-        chart.innerHTML = data.map(d => `
-            <div class="chart-col">
-                <div class="chart-bar" style="height: ${(d.work / max) * 100}px"></div>
-                <div class="chart-label">${d.day}</div>
-            </div>
-        `).join('');
+        const title = document.getElementById('chart-title');
+        
+        if (mode === 'daily') {
+            if (title) title.innerText = "Günlük Analiz";
+            chart.innerHTML = `
+                <div style="width: 100px; height: 100px; border-radius: 50%; border: 8px solid var(--dynamic-color); margin: 0 auto; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 14px; font-weight: 500;">
+                    Yakında
+                </div>
+            `;
+        } else {
+            if (title) title.innerText = "Haftalık Analiz";
+            const data = Analytics.getWeeklyData();
+            const max = Math.max(...data.map(d => d.work), 1);
+            chart.innerHTML = data.map(d => `
+                <div class="chart-col">
+                    <div class="chart-bar" style="height: ${(d.work / max) * 100}px"></div>
+                    <div class="chart-label">${d.day}</div>
+                </div>
+            `).join('');
+        }
     }
 
     function updateProfileStats() {
