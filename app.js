@@ -11,6 +11,21 @@ class Analytics {
         data[key][type] += ms;
         localStorage.setItem('trackerAnalytics', JSON.stringify(data));
     }
+    static getAllData() {
+        return JSON.parse(localStorage.getItem('trackerAnalytics') || '{}');
+    }
+    static getWeeklyData() {
+        const data = this.getAllData();
+        const result = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            const dayName = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'][d.getDay()];
+            result.push({ day: dayName, work: data[key]?.work || 0, rest: data[key]?.rest || 0, key: key, dateObj: d });
+        }
+        return result;
+    }
 }
 
 class SessionTracker {
@@ -26,10 +41,12 @@ class SessionTracker {
         this.phaseStartTime = 0;
         this.segments = [];
         this.lastSavedTime = Date.now();
+        this.notifiedTarget = false;
+        this.notified60 = false;
         localStorage.removeItem('sessionData');
     }
     save() {
-        const data = { state: this.state, targetMs: this.targetMs, totalWorkMs: this.totalWorkMs, totalRestMs: this.totalRestMs, phaseStartTime: this.phaseStartTime, segments: this.segments, lastSavedTime: Date.now() };
+        const data = { state: this.state, targetMs: this.targetMs, totalWorkMs: this.totalWorkMs, totalRestMs: this.totalRestMs, phaseStartTime: this.phaseStartTime, segments: this.segments, lastSavedTime: Date.now(), notifiedTarget: this.notifiedTarget, notified60: this.notified60 };
         localStorage.setItem('sessionData', JSON.stringify(data));
     }
     load() {
@@ -48,6 +65,8 @@ class SessionTracker {
         this.targetMs = (h * 3600 + m * 60 + s) * 1000;
         this.state = 'working';
         this.phaseStartTime = Date.now();
+        this.notifiedTarget = false;
+        this.notified60 = false;
         this.save();
     }
     toggle() {
@@ -80,11 +99,19 @@ function initAppFlow() {
         showApp(savedName);
     }
 
-    document.getElementById('btn-login-action').onclick = () => {
+    document.getElementById('btn-login-action').onclick = async () => {
         const name = document.getElementById('username-input').value.trim();
         if (!name) return alert("Lütfen bir isim girin.");
         localStorage.setItem('trackerUserName', name);
         document.getElementById('loading-overlay').style.display = 'flex';
+        
+        if (typeof Notification !== 'undefined') {
+            await Notification.requestPermission();
+        }
+        if (window.OneSignalDeferred) {
+            window.OneSignalDeferred.push(async (OS) => await OS.login(name));
+        }
+
         setTimeout(() => showApp(name), 1500);
     };
 }
@@ -161,6 +188,21 @@ function startUIUpdate() {
     uiInterval = setInterval(updateUI, 100);
 }
 
+async function fireNotification(title, body) {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    
+    navigator.serviceWorker.getRegistration().then(reg => {
+        if (reg) {
+            reg.showNotification(title, {
+                body: body,
+                icon: "./session_tracker.png",
+                badge: "./session_tracker.png",
+                vibrate: [200, 100, 200]
+            });
+        }
+    });
+}
+
 function updateUI() {
     const now = Date.now();
     const phaseElapsed = now - tracker.phaseStartTime;
@@ -192,6 +234,19 @@ function updateUI() {
         </div>
     `).join('');
 
+    // Notification Triggers
+    if (progress >= 100 && !tracker.notifiedTarget && tracker.targetMs > 0) {
+        tracker.notifiedTarget = true;
+        tracker.save();
+        fireNotification("Hedefe Ulaşıldı! 🎉", "Belirlenen çalışma hedefini tamamladın!");
+    }
+    
+    if (tracker.state === 'working' && phaseElapsed >= 3600000 && !tracker.notified60) {
+        tracker.notified60 = true;
+        tracker.save();
+        fireNotification("Harika gidiyorsun! ☕", "60 dakikadır kesintisiz çalışıyorsun. Kısa bir mola vermeye ne dersin?");
+    }
+
     Analytics.addTime(tracker.state === 'working' ? 'work' : 'rest', 100);
 }
 
@@ -222,18 +277,69 @@ function saveToHistory() {
 
 function renderChart(mode) {
     const chart = document.getElementById('analytics-chart');
-    chart.innerHTML = `<p style="color:var(--text-secondary)">${mode === 'daily' ? 'Günlük Veriler Hazırlanıyor' : 'Haftalık Veriler Hazırlanıyor'}</p>`;
+    const data = Analytics.getWeeklyData();
+    
+    if (mode === 'daily') {
+        const today = data[data.length - 1];
+        const total = (today.work + today.rest) || 1;
+        const workPerc = (today.work / total) * 100;
+        
+        chart.innerHTML = `
+            <div style="display:flex; flex-direction:column; align-items:center; width:100%; padding: 10px 0;">
+                <div style="width:140px; height:140px; border-radius:50%; background: conic-gradient(var(--dynamic-color) 0% ${workPerc}%, #34C759 ${workPerc}% 100%); display:flex; align-items:center; justify-content:center;">
+                    <div style="width:120px; height:120px; background:#1C1C1E; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                        <span style="font-size:26px; font-weight:700; color:#FFF;">%${Math.round(workPerc)}</span>
+                        <span style="font-size:12px; color:var(--text-secondary);">İş Oranı</span>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-around; width:100%; margin-top:24px;">
+                    <div style="text-align:center;">
+                        <div style="font-size:11px; color:var(--text-secondary); margin-bottom:4px;">ÇALIŞMA</div>
+                        <div style="color:var(--dynamic-color); font-weight:600; font-size:18px;">${formatTime(today.work)}</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-size:11px; color:var(--text-secondary); margin-bottom:4px;">MOLA</div>
+                        <div style="color:#34C759; font-weight:600; font-size:18px;">${formatTime(today.rest)}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        const max = Math.max(...data.map(d => d.work + d.rest), 1);
+        chart.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:flex-end; width:100%; height:160px; gap:8px; margin-top: 10px;">' + data.map(d => `
+            <div style="display:flex; flex-direction:column; align-items:center; flex:1; gap:8px;">
+                <div style="width:100%; display:flex; flex-direction:column-reverse; border-radius:4px; overflow:hidden; min-height:4px; background:#2c2c2e; height: ${((d.work + d.rest) / max) * 100}%;">
+                    <div style="width:100%; background:var(--dynamic-color); height: ${((d.work) / (d.work + d.rest || 1)) * 100}%"></div>
+                    <div style="width:100%; background:#34C759; height: ${((d.rest) / (d.work + d.rest || 1)) * 100}%"></div>
+                </div>
+                <div style="font-size:10px; color:var(--text-secondary);">${d.day}</div>
+            </div>
+        `).join('') + '</div>';
+    }
 }
 
 function renderCalendar() {
     const grid = document.getElementById('calendar-grid');
     grid.innerHTML = '';
+    
     const year = currentCalDate.getFullYear();
     const month = currentCalDate.getMonth();
     document.getElementById('cal-month-year').innerText = currentCalDate.toLocaleDateString('tr', {month:'long', year:'numeric'});
     
+    const dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+    dayNames.forEach(d => grid.innerHTML += `<div style="font-size:11px; color:var(--text-secondary); text-align:center; margin-bottom:8px;">${d}</div>`);
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const startOffset = (firstDay + 6) % 7; // Pazartesi başlangıcı hesaplaması
     const days = new Date(year, month + 1, 0).getDate();
+    
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+
+    for(let i=0; i<startOffset; i++) grid.innerHTML += `<div></div>`; // Boşluklar
+    
     for(let i=1; i<=days; i++) {
-        grid.innerHTML += `<div class="cal-day">${i}</div>`;
+        const isToday = isCurrentMonth && today.getDate() === i;
+        grid.innerHTML += `<div class="cal-day ${isToday ? 'today' : ''}">${i}</div>`;
     }
 }
