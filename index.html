@@ -347,7 +347,10 @@
                     </div>
                     <div class="calendar-grid" id="calendar-grid"></div>
                 </div>
-                <div id="profile-history-list" style="margin-top:20px;"></div>
+                <div id="profile-kpi-box" style="margin-top:20px;">
+                    <h4 style="color:var(--text-secondary); font-size:14px; margin-bottom:12px;">Oturum Geçmişi</h4>
+                    <div id="profile-history-list" style="display:flex; flex-direction:column; gap:10px; max-height: 30vh; overflow-y:auto;"></div>
+                </div>
             </div>
 
             <div id="timer-tab" class="tab-content active">
@@ -395,13 +398,23 @@
                     <div id="analytics-chart"
                         style="min-height:200px; display:flex; align-items:center; justify-content:center;"></div>
                 </div>
+                <div id="analytics-session-box" style="margin-top:20px; display:none;">
+                    <h4 style="color:var(--text-secondary); font-size:14px; margin-bottom:12px;">Günlük Oturumlar</h4>
+                    <div id="analytics-session-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+                </div>
             </div>
         </div>
 
         <nav class="bottom-nav">
-            <div class="nav-item" data-tab="profile-tab"><span>Profil</span></div>
-            <div class="nav-item active" data-tab="timer-tab"><span>Sayaç</span></div>
-            <div class="nav-item" data-tab="analytics-tab"><span>Analiz</span></div>
+            <div class="nav-item" data-tab="profile-tab">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>Profil</span></div>
+            <div class="nav-item active" data-tab="timer-tab">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>Sayaç</span></div>
+            <div class="nav-item" data-tab="analytics-tab">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"></rect><rect x="10" y="8" width="4" height="13"></rect><rect x="2" y="13" width="4" height="8"></rect></svg>
+                <span>Analiz</span></div>
         </nav>
     </div>
     <script src="app.js"></script>

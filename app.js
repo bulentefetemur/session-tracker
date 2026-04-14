@@ -4,21 +4,48 @@ class Analytics {
         const d = new Date();
         return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
-    static addTime(type, ms) {
-        const key = this.getTodayKey();
-        let data = JSON.parse(localStorage.getItem('trackerAnalytics') || '{}');
-        if (!data[key]) data[key] = { work: 0, rest: 0 };
-        data[key][type] += ms;
+
+    // Backward compatibility and data sanitization
+    static _getSanitizedData() {
+        const data = JSON.parse(localStorage.getItem('trackerAnalytics') || '{}');
+        for (const key in data) {
+            if (!Array.isArray(data[key]) && typeof data[key] === 'object' && data[key] !== null && 'work' in data[key]) {
+                data[key] = [{
+                    id: new Date(key).getTime(),
+                    workMs: data[key].work,
+                    restMs: data[key].rest,
+                    startTime: 'N/A',
+                    endTime: 'N/A'
+                }];
+            }
+        }
+        return data;
+    }
+
+    static saveSession(dateKey, sessionObject) {
+        const data = this._getSanitizedData();
+        if (!data[dateKey]) {
+            data[dateKey] = [];
+        }
+        data[dateKey].push(sessionObject);
         localStorage.setItem('trackerAnalytics', JSON.stringify(data));
     }
-    static deleteData(key) {
-        let data = JSON.parse(localStorage.getItem('trackerAnalytics') || '{}');
-        delete data[key];
+
+    static deleteSession(dateKey, sessionId) {
+        const data = this._getSanitizedData();
+        if (data[dateKey]) {
+            data[dateKey] = data[dateKey].filter(session => session.id !== sessionId);
+            if (data[dateKey].length === 0) {
+                delete data[dateKey];
+            }
+        }
         localStorage.setItem('trackerAnalytics', JSON.stringify(data));
     }
+
     static getAllData() {
-        return JSON.parse(localStorage.getItem('trackerAnalytics') || '{}');
+        return this._getSanitizedData();
     }
+
     static getWeeklyData() {
         const data = this.getAllData();
         const result = [];
@@ -27,7 +54,15 @@ class Analytics {
             d.setDate(d.getDate() - i);
             const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
             const dayName = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'][d.getDay()];
-            result.push({ day: dayName, work: data[key]?.work || 0, rest: data[key]?.rest || 0, key: key, dateObj: d });
+            
+            const dayData = data[key] || [];
+            const totals = dayData.reduce((acc, session) => {
+                acc.work += session.workMs;
+                acc.rest += session.restMs;
+                return acc;
+            }, { work: 0, rest: 0 });
+
+            result.push({ day: dayName, work: totals.work, rest: totals.rest, key: key, dateObj: d });
         }
         return result;
     }
@@ -44,6 +79,7 @@ class SessionTracker {
         this.totalWorkMs = 0;
         this.totalRestMs = 0;
         this.phaseStartTime = 0;
+        this.sessionStartTime = 0;
         this.segments = [];
         this.lastSavedTime = Date.now();
         this.notifiedTarget = false;
@@ -51,7 +87,7 @@ class SessionTracker {
         localStorage.removeItem('sessionData');
     }
     save() {
-        const data = { state: this.state, targetMs: this.targetMs, totalWorkMs: this.totalWorkMs, totalRestMs: this.totalRestMs, phaseStartTime: this.phaseStartTime, segments: this.segments, lastSavedTime: Date.now(), notifiedTarget: this.notifiedTarget, notified60: this.notified60 };
+        const data = { state: this.state, targetMs: this.targetMs, totalWorkMs: this.totalWorkMs, totalRestMs: this.totalRestMs, phaseStartTime: this.phaseStartTime, sessionStartTime: this.sessionStartTime, segments: this.segments, lastSavedTime: Date.now(), notifiedTarget: this.notifiedTarget, notified60: this.notified60 };
         localStorage.setItem('sessionData', JSON.stringify(data));
     }
     load() {
@@ -69,6 +105,7 @@ class SessionTracker {
     start(h, m, s) {
         this.targetMs = (h * 3600 + m * 60 + s) * 1000;
         this.state = 'working';
+        this.sessionStartTime = Date.now();
         this.phaseStartTime = Date.now();
         this.notifiedTarget = false;
         this.notified60 = false;
@@ -263,7 +300,6 @@ function updateUI() {
         fireNotification("Harika gidiyorsun! ☕", "60 dakikadır kesintisiz çalışıyorsun. Kısa bir mola vermeye ne dersin?");
     }
 
-    Analytics.addTime(tracker.state === 'working' ? 'work' : 'rest', 100);
 }
 
 function formatTime(ms) {
@@ -288,7 +324,16 @@ function getPickerValue(id) {
 }
 
 function saveToHistory() {
-    // Logic to finalize today's data if needed
+    if (tracker.totalWorkMs < 1000) return; // Don't save trivial sessions
+
+    const sessionData = {
+        id: Date.now(),
+        workMs: tracker.totalWorkMs,
+        restMs: tracker.totalRestMs,
+        startTime: new Date(tracker.sessionStartTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+        endTime: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+    };
+    Analytics.saveSession(Analytics.getTodayKey(), sessionData);
 }
 
 function renderChart(mode) {
@@ -298,15 +343,26 @@ function renderChart(mode) {
     const picker = document.getElementById('analytics-date-picker');
     const selectedDate = picker ? picker.value : Analytics.getTodayKey();
     const allData = Analytics.getAllData();
+    const sessionBox = document.getElementById('analytics-session-box');
+    const sessionList = document.getElementById('analytics-session-list');
     
     if (mode === 'daily') {
         title.innerText = "Günlük Analiz";
-        const todayData = allData[selectedDate] || {work: 0, rest: 0};
-        const total = (todayData.work + todayData.rest) || 1;
-        const workPerc = (todayData.work / total) * 100;
+        sessionBox.style.display = 'block';
+        const daySessions = allData[selectedDate] || [];
+
+        const dayTotals = daySessions.reduce((acc, s) => {
+            acc.work += s.workMs;
+            acc.rest += s.restMs;
+            return acc;
+        }, { work: 0, rest: 0 });
+
+        const total = (dayTotals.work + dayTotals.rest) || 1;
+        const workPerc = (dayTotals.work / total) * 100;
         
-        if (todayData.work === 0 && todayData.rest === 0) {
+        if (daySessions.length === 0) {
             chart.innerHTML = `<div style="text-align:center; padding:40px 0; color:var(--text-secondary);">Bu tarihte veri bulunamadı.</div>`;
+            sessionList.innerHTML = '';
             return;
         }
         
@@ -321,15 +377,25 @@ function renderChart(mode) {
                 <div style="display:flex; justify-content:space-around; width:100%; margin-top:24px;">
                     <div style="text-align:center;">
                         <div style="font-size:11px; color:var(--text-secondary); margin-bottom:4px;">ÇALIŞMA</div>
-                        <div style="color:var(--dynamic-color); font-weight:600; font-size:18px;">${formatTime(todayData.work)}</div>
+                        <div style="color:var(--dynamic-color); font-weight:600; font-size:18px;">${formatTime(dayTotals.work)}</div>
                     </div>
                     <div style="text-align:center;">
                         <div style="font-size:11px; color:var(--text-secondary); margin-bottom:4px;">MOLA</div>
-                        <div style="color:#34C759; font-weight:600; font-size:18px;">${formatTime(todayData.rest)}</div>
+                        <div style="color:#34C759; font-weight:600; font-size:18px;">${formatTime(dayTotals.rest)}</div>
                     </div>
                 </div>
             </div>
         `;
+
+        sessionList.innerHTML = daySessions.map(s => `
+            <div style="background:#2C2C2E; padding:15px; border-radius:15px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-size:14px; color:var(--text-secondary); margin-bottom:4px;">Oturum: ${s.startTime} - ${s.endTime}</div>
+                    <div style="color:var(--dynamic-color); font-weight:600;">İş: ${formatTime(s.workMs)}</div>
+                    <div style="color:#34C759; font-weight:600;">Mola: ${formatTime(s.restMs)}</div>
+                </div>
+            </div>
+        `).join('');
     } else {
         const d = new Date(selectedDate);
         const day = d.getDay();
@@ -341,8 +407,14 @@ function renderChart(mode) {
             const current = new Date(monday);
             current.setDate(monday.getDate() + i);
             const key = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}-${String(current.getDate()).padStart(2,'0')}`;
-            const dayName = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'][current.getDay()];
-            weekData.push({ day: dayName, work: allData[key]?.work || 0, rest: allData[key]?.rest || 0 });
+            const dayName = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'][current.getDay()]; // Note: Sunday is 0
+            const daySessions = allData[key] || [];
+            const totals = daySessions.reduce((acc, s) => {
+                acc.work += s.workMs;
+                acc.rest += s.restMs;
+                return acc;
+            }, { work: 0, rest: 0 });
+            weekData.push({ day: dayName, work: totals.work, rest: totals.rest });
         }
         
         const sunday = new Date(monday);
@@ -359,6 +431,7 @@ function renderChart(mode) {
                 <div style="font-size:10px; color:var(--text-secondary);">${d.day}</div>
             </div>
         `).join('') + '</div>';
+        sessionBox.style.display = 'none';
     }
 }
 
@@ -390,7 +463,7 @@ function renderCalendar() {
         const isSelected = dateKey === selectedProfileDate;
         const hasData = data[dateKey] && (data[dateKey].work > 0 || data[dateKey].rest > 0);
         
-        grid.innerHTML += `<div class="cal-day ${isToday ? 'today' : ''} ${isSelected ? 'active' : ''}" data-key="${dateKey}" style="cursor:pointer;">
+        grid.innerHTML += `<div class="cal-day ${isToday ? 'today' : ''} ${isSelected ? 'active' : ''}" data-key="${dateKey}" style="cursor:pointer; user-select:none;">
             ${i}
             ${hasData ? '<div class="cal-dot"></div>' : ''}
         </div>`;
@@ -408,29 +481,33 @@ function renderCalendar() {
 
 function renderProfileHistory() {
     const list = document.getElementById('profile-history-list');
-    const data = Analytics.getAllData()[selectedProfileDate];
-    if (!data || (data.work === 0 && data.rest === 0)) {
+    const daySessions = Analytics.getAllData()[selectedProfileDate] || [];
+
+    if (daySessions.length === 0) {
         list.innerHTML = `<div style="text-align:center; color:var(--text-secondary); padding: 20px;">Bu tarihte kayıtlı veri yok.</div>`;
         return;
     }
-    list.innerHTML = `
+
+    list.innerHTML = daySessions.map(s => `
         <div style="background:#2C2C2E; padding:15px; border-radius:15px; display:flex; justify-content:space-between; align-items:center;">
             <div>
-                <div style="font-size:14px; color:var(--text-secondary); margin-bottom:4px;">${selectedProfileDate.split('-').reverse().join('.')} Özeti</div>
-                <div style="color:var(--dynamic-color); font-weight:600;">İş: ${formatTime(data.work)}</div>
-                <div style="color:#34C759; font-weight:600;">Mola: ${formatTime(data.rest)}</div>
+                <div style="font-size:14px; color:var(--text-secondary); margin-bottom:4px;">Oturum: ${s.startTime} - ${s.endTime}</div>
+                <div style="color:var(--dynamic-color); font-weight:600;">İş: ${formatTime(s.workMs)}</div>
+                <div style="color:#34C759; font-weight:600;">Mola: ${formatTime(s.restMs)}</div>
             </div>
-            <button id="btn-delete-record" style="background:rgba(255,59,48,0.2); color:#FF3B30; border:none; padding:10px 15px; border-radius:10px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:6px;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                Sil
+            <button class="btn-delete-session" data-session-id="${s.id}" style="background:rgba(255,59,48,0.2); color:#FF3B30; border:none; width:44px; height:44px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </button>
         </div>
-    `;
-    document.getElementById('btn-delete-record').onclick = () => {
-        if(confirm("Bu tarihteki tüm veriler kalıcı olarak silinecek. Emin misiniz?")) {
-            Analytics.deleteData(selectedProfileDate);
-            renderCalendar();
-            if (currentChartMode) renderChart(currentChartMode);
-        }
-    };
+    `).join('');
+
+    document.querySelectorAll('.btn-delete-session').forEach(btn => {
+        btn.onclick = () => {
+            const sessionId = parseInt(btn.dataset.sessionId);
+            if (confirm("Bu oturum kaydı kalıcı olarak silinecek. Emin misiniz?")) {
+                Analytics.deleteSession(selectedProfileDate, sessionId);
+                renderCalendar(); // Re-render calendar to update dot
+            }
+        };
+    });
 }
