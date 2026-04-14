@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
-    <title>Session Tracker v23</title>
+    <title>Session Tracker v13</title>
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
         window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -20,6 +20,11 @@
                 serviceWorkerPath: 'OneSignalSDKWorker.js',
                 serviceWorkerParam: { scope: '/' },
                 allowLocalhostAsSecureOrigin: true
+            });
+            
+            OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event) => {
+                event.preventDefault();
+                event.notification.display();
             });
         });
     </script>
@@ -31,6 +36,7 @@
             --glass-bg: rgba(44, 44, 46, 0.7);
             --glass-border: rgba(255, 255, 255, 0.1);
             --dynamic-color: #FF9500;
+            /* Amber Focus Color */
         }
 
         * {
@@ -50,6 +56,7 @@
             width: 100%;
         }
 
+        /* LOGIN & APP WRAPPER */
         #login-screen {
             position: fixed;
             inset: 0;
@@ -77,6 +84,7 @@
             display: flex;
         }
 
+        /* PICKER */
         .time-picker-container {
             display: flex;
             justify-content: center;
@@ -130,10 +138,11 @@
             margin-left: 2px;
         }
 
+        /* UI ELEMENTS */
         .tab-content {
             position: absolute;
             inset: 0;
-            bottom: 80px;
+            bottom: 90px;
             padding: calc(env(safe-area-inset-top) + 40px) 20px 100px;
             display: none;
             flex-direction: column;
@@ -144,19 +153,18 @@
             display: flex;
         }
 
-        /* NAV FIX: İkonları ve Metinleri Aşağı Yasla */
         .bottom-nav {
             position: fixed;
             bottom: 0;
             width: 100%;
-            height: 80px;
+            height: 90px; /* Retained for ample touch area */
             background: var(--glass-bg);
-            backdrop-filter: blur(25px);
+            backdrop-filter: blur(20px);
             border-top: 1px solid var(--glass-border);
             display: flex;
             justify-content: space-around;
             align-items: center;
-            padding-bottom: env(safe-area-inset-bottom, 5px);
+            padding-bottom: env(safe-area-inset-bottom, 15px) !important; /* Reduced for closer alignment */
             z-index: 2000;
         }
 
@@ -165,17 +173,20 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-end;
-            padding-bottom: 8px;
-            font-size: 10px;
+            justify-content: center;
+            font-size: 11px;
             cursor: pointer;
             transition: 0.3s;
-            height: 100%;
-            width: 100%;
+            height: 100%; /* Allow flex to center content vertically */
         }
 
         .nav-item svg {
-            margin-bottom: 4px;
+            margin-bottom: 0; /* Explicitly set */
+        }
+
+        .nav-item span {
+            font-size: 10px;
+            margin-top: 2px; /* Added space between icon and text */
         }
 
         .nav-item.active {
@@ -203,22 +214,14 @@
             margin-top: 12px;
         }
 
-        /* TIMER PRECISION */
         .massive-timer {
-            font-size: 64px;
+            font-size: 72px;
             font-weight: 200;
             text-align: center;
             margin: 30px 0;
             font-variant-numeric: tabular-nums;
-            letter-spacing: -1px;
+            letter-spacing: -2px; /* Added for better fit with centiseconds */
         }
-
-        .massive-timer span {
-            font-size: 40px;
-            opacity: 0.6;
-        }
-
-        /* Salise stili */
 
         .progress-pill {
             padding: 6px 16px;
@@ -241,18 +244,50 @@
             background: #34C759;
         }
 
+        /* ANALYTICS */
+        .toggle-group {
+            display: flex;
+            background: #1C1C1E;
+            padding: 4px;
+            border-radius: 99px;
+            margin-bottom: 24px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 99px;
+            border: none;
+            background: transparent;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .toggle-btn.active {
+            background: var(--dynamic-color);
+            color: #000;
+        }
+
+        /* HAFTALIK GRAFİK SÜTUNLARI */
         .stacked-bar-container {
             width: 100%;
             display: flex;
-            flex-direction: column-reverse;
+            flex-direction: column-reverse; /* Barları alttan üste dizer */
             border-radius: 4px;
             overflow: hidden;
-            min-height: 10px;
-            height: 150px;
-            background: #2c2c2e;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            min-height: 10px; /* Görünürlük için min-yükseklik */
+            background: #2c2c2e; /* Boş veri için arka plan */
+            transition: transform 0.2s ease;
+            border: 1px solid rgba(255,255,255,0.05);
+            height: 150px; /* Sabit yükseklik */
         }
 
+        .chart-col:active .stacked-bar-container {
+            transform: scale(1.05);
+        }
+
+        /* CALENDAR */
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -322,7 +357,7 @@
 <body>
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <p style="color:#fff; margin-top:15px;">Hazırlanıyor...</p>
+        <p style="color:#fff; margin-top:15px;">Yükleniyor...</p>
     </div>
 
     <section id="login-screen">
@@ -336,22 +371,20 @@
 
     <div id="app">
         <div id="main-content" style="flex:1; position:relative;">
+
             <div id="profile-tab" class="tab-content">
                 <h1 id="profile-display-name">Profil</h1>
                 <div style="background:#1C1C1E; padding:20px; border-radius:20px; margin-top:20px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <button class="toggle-btn" id="cal-prev"
-                            style="padding:5px 15px; border-radius:8px; border:none; background:#2C2C2E; color:#fff;">&lt;</button>
+                        <button class="toggle-btn" id="cal-prev" style="flex:0; padding:5px 15px;">&lt;</button>
                         <h3 id="cal-month-year">Nisan 2026</h3>
-                        <button class="toggle-btn" id="cal-next"
-                            style="padding:5px 15px; border-radius:8px; border:none; background:#2C2C2E; color:#fff;">&gt;</button>
+                        <button class="toggle-btn" id="cal-next" style="flex:0; padding:5px 15px;">&gt;</button>
                     </div>
                     <div class="calendar-grid" id="calendar-grid"></div>
                 </div>
                 <div id="profile-kpi-box" style="margin-top:20px;">
                     <h4 style="color:var(--text-secondary); font-size:14px; margin-bottom:12px;">Oturum Geçmişi</h4>
-                    <div id="profile-history-list"
-                        style="display:flex; flex-direction:column; gap:10px; padding-bottom:100px;"></div>
+                    <div id="profile-history-list" style="display:flex; flex-direction:column; gap:10px; max-height: 30vh; overflow-y:auto;"></div>
                 </div>
             </div>
 
@@ -369,7 +402,7 @@
                     <div style="text-align:center; color:var(--text-secondary); font-size:14px;">Hedef: <span
                             id="lbl-target-time">00:00:00</span></div>
                     <div id="lbl-percentage" class="progress-pill progress-low" style="margin-top:20px;">%0</div>
-                    <h2 id="lbl-current-timer" class="massive-timer">00:00:00.00</h2>
+                    <h2 id="lbl-current-timer" class="massive-timer">00:00:00</h2>
                     <p id="lbl-current-state" style="text-align:center; color:var(--dynamic-color); font-weight:600;">
                         Çalışıyor</p>
                     <div style="margin-top:30px;">
@@ -392,16 +425,15 @@
                     <button class="toggle-btn active" id="btn-daily-view">Günlük</button>
                     <button class="toggle-btn" id="btn-weekly-view">Haftalık</button>
                 </div>
-                <div style="text-align:center; margin-bottom:20px;">
-                    <input type="date" id="analytics-date-picker"
-                        style="background:#2C2C2E; color:#fff; border:none; padding:12px 20px; border-radius:12px; outline:none; font-family:inherit; font-size:15px; width:100%; max-width:250px; text-align:center;">
-                </div>
+            <div style="text-align:center; margin-bottom:20px;">
+                <input type="date" id="analytics-date-picker" style="background:#2C2C2E; color:#fff; border:none; padding:12px 20px; border-radius:12px; outline:none; font-family:inherit; font-size:15px; width:100%; max-width:250px; text-align:center;">
+            </div>
                 <div id="analytics-container" style="background:#1C1C1E; padding:20px; border-radius:20px;">
                     <h4 id="chart-title">Verimlilik</h4>
                     <div id="analytics-chart"
                         style="min-height:200px; display:flex; align-items:center; justify-content:center;"></div>
                 </div>
-                <div id="analytics-session-box" style="margin-top:20px; display:none; padding-bottom:100px;">
+                <div id="analytics-session-box" style="margin-top:20px; display:none;">
                     <h4 style="color:var(--text-secondary); font-size:14px; margin-bottom:12px;">Günlük Oturumlar</h4>
                     <div id="analytics-session-list" style="display:flex; flex-direction:column; gap:10px;"></div>
                 </div>
@@ -410,30 +442,14 @@
 
         <nav class="bottom-nav">
             <div class="nav-item" data-tab="profile-tab">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                <span>Profil</span>
-            </div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>Profil</span></div>
             <div class="nav-item active" data-tab="timer-tab">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                <span>Sayaç</span>
-            </div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>Sayaç</span></div>
             <div class="nav-item" data-tab="analytics-tab">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="18" y="3" width="4" height="18"></rect>
-                    <rect x="10" y="8" width="4" height="13"></rect>
-                    <rect x="2" y="13" width="4" height="8"></rect>
-                </svg>
-                <span>Analiz</span>
-            </div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"></rect><rect x="10" y="8" width="4" height="13"></rect><rect x="2" y="13" width="4" height="8"></rect></svg>
+                <span>Analiz</span></div>
         </nav>
     </div>
     <script src="app.js"></script>
