@@ -154,16 +154,15 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 95px;
-            padding-bottom: env(safe-area-inset-bottom, 20px); /* Yazıları yukarı itiyoruz */
+            height: 90px;
+            padding-bottom: env(safe-area-inset-bottom, 15px);
             display: flex;
             justify-content: space-around;
             align-items: center;
             background: var(--glass-bg);
             backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
             border-top: 1px solid var(--glass-border);
-            z-index: 100;
+            z-index: 2000; /* Her şeyin üstünde kalsın */
         }
 
         .nav-item {
@@ -245,6 +244,25 @@
             color: #FFFFFF;
         }
 
+        .progress-pill {
+            color: #fff;
+            padding: 6px 16px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 17px;
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+
+        .progress-low {
+            background-color: #FF3B30; /* Red */
+        }
+        .progress-mid {
+            background-color: #FFCC00; /* Yellow */
+            color: #000;
+        }
+        .progress-high {
+            background-color: #34C759; /* Green */
+        }
         /* ANALYTICS CHART */
         .weekly-chart {
             display: flex;
@@ -262,12 +280,38 @@
             gap: 8px;
         }
 
+        .stacked-bar-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column-reverse; /* Barları alttan üste dizer */
+            border-radius: 4px;
+            overflow: hidden;
+            min-height: 4px;
+            background: #2c2c2e; /* Boş veri için arka plan */
+            transition: transform 0.2s ease;
+        }
+        .chart-col:active .stacked-bar-container {
+            transform: scale(1.05);
+        }
+
+        .stacked-bar-work {
+            width: 100%;
+            background: var(--dynamic-color); /* Amber */
+            transition: height 0.5s;
+        }
+        .stacked-bar-rest {
+            width: 100%;
+            background: #34C759; /* Green */
+            transition: height 0.5s;
+        }
+
         .chart-bar {
             width: 100%;
             background: var(--dynamic-color);
             border-radius: 4px;
             transition: height 0.5s;
             min-height: 4px;
+            cursor: pointer;
         }
 
         .chart-label {
@@ -275,166 +319,55 @@
             color: var(--text-secondary);
         }
 
-        .glass-footer {
-            background: var(--glass-bg);
-            border-radius: 24px;
-            padding: 20px;
-            display: flex;
-            justify-content: space-around;
-            margin-top: auto;
-        }
-
-        .stat-box {
-            text-align: center;
-        }
-
-        .stat-title {
-            font-size: 11px;
+        .cal-day-header {
+            font-size: 10px;
             color: var(--text-secondary);
+            margin-bottom: 8px;
             text-transform: uppercase;
         }
-
-        .stat-value {
-            font-size: 20px;
-            font-weight: 600;
-            margin-top: 4px;
-        }
-
-        .header h1 {
-            font-size: 32px;
-            font-weight: 700;
-        }
-
-        .subtitle {
-            color: var(--text-secondary);
-            font-size: 16px;
-            margin-top: 4px;
-        }
-
-        .debug-status-profile {
-            text-align: center;
-            font-size: 10px;
-            color: rgba(255,255,255,0.2);
-            margin-top: auto;
-            padding-bottom: 20px;
-        }
-
-        /* --- YENİDEN EKLENEN SAYAÇ (PICKER) STİLLERİ --- */
-        .picker-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            z-index: 2;
-        }
-
-        .picker-column {
-            height: 150px;
-            width: 60px;
-            overflow-y: scroll;
-            scroll-snap-type: y mandatory;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-        }
-
-        .picker-column::-webkit-scrollbar {
-            display: none;
-        }
-
-        .picker-column::before,
-        .picker-column::after {
-            content: '';
-            display: block;
-            height: 50px;
-        }
-
-        .picker-item {
-            height: 50px;
+        .cal-day-cell {
+            aspect-ratio: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--text-primary);
-            font-size: 42px;
-            font-weight: 600;
-            scroll-snap-align: center;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .picker-group label {
-            color: var(--text-secondary);
-            font-size: 15px;
-            font-weight: 500;
-            pointer-events: none; /* Etiketin kaydırmayı engellemesini önler */
-        }
-
-        .picker-highlight {
-            position: absolute;
-            top: 50%;
-            left: 16px;
-            right: 16px;
-            height: 50px;
-            transform: translateY(-50%);
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            pointer-events: none; /* Işıklandırmanın dokunmayı engellemesini önler */
-            z-index: 1;
-        }
-
-        .picker-separator {
-            font-size: 48px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            z-index: 2;
-            pointer-events: none; /* İki nokta (:) işaretinin kaydırmayı engellemesini önler */
-        }
-
-        .toggle-btn {
             background: #1C1C1E;
-            border: 1px solid var(--glass-border);
-            color: #FFFFFF;
-            padding: 8px 24px;
-            border-radius: 99px;
+            border-radius: 50%;
             font-size: 14px;
-            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .toggle-btn.active {
-            background: var(--dynamic-color);
-            color: #000000;
-        }
-
-                /* --- KAYIP SAYAÇ VE BUTON STİLLERİ --- */
-        .time-picker-container {
             position: relative;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            justify-content: center;
-            background: #1C1C1E;
-            padding: 16px 0;
-            border-radius: 24px;
-            overflow: hidden; /* Taşmayı engeller, çarkı oluşturur */
-            height: 200px;    /* Çark yüksekliğini sabitler */
-            margin: 20px 0;
-            -webkit-mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 60%, transparent 95%);
-            mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 60%, transparent 95%);
+            border: 1px solid transparent;
+            transition: all 0.3s;
+        }
+        .cal-day-cell.active {
+            border-color: var(--dynamic-color);
+            background: rgba(255, 149, 0, 0.1);
+        }
+        .cal-day-cell.empty {
+            background: transparent;
+            pointer-events: none;
+        }
+        .cal-day-cell .cal-dot {
+            position: absolute;
+            bottom: 4px;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--dynamic-color);
         }
 
         .toggle-btn {
-            background: #1C1C1E;
-            border: 1px solid var(--glass-border);
-            color: #FFFFFF;
+            background: #2C2C2E;
+            border: none;
+            color: #fff;
             padding: 8px 24px;
             border-radius: 99px;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
         }
-
         .toggle-btn.active {
             background: var(--dynamic-color);
-            color: #000000;
+            color: #000;
         }
 
         #coming-soon-curtain {
@@ -463,6 +396,53 @@
             border-top: 3px solid #FF9500;
             border-radius: 50%;
             animation: spin 1.2s linear infinite;
+        }
+
+        /* --- SAYAÇ VE ANALİZ BUTONLARI KESİN ÇÖZÜM --- */
+        .time-picker-container {
+            position: relative;
+            display: flex;
+            justify-content: center; /* Tam merkezleme */
+            align-items: center;
+            gap: 12px;
+            background: #1C1C1E;
+            padding: 16px 0;
+            border-radius: 24px;
+            overflow: hidden; /* Sayıların aşağı akmasını engeller */
+            height: 200px;    /* Çarkın yüksekliğini sabitler */
+            margin: 30px auto;
+            width: 100%;
+            max-width: 340px;
+            -webkit-mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 60%, transparent 95%);
+            mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 60%, transparent 95%);
+        }
+
+        .picker-column {
+            height: 150px;
+            width: 60px;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .picker-column::-webkit-scrollbar { display: none; }
+
+        .picker-item {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            font-size: 32px;
+            font-weight: 600;
+            scroll-snap-align: center;
+        }
+
+        .picker-column::before, .picker-column::after {
+            content: '';
+            display: block;
+            height: 50px;
         }
     </style>
 </head>
@@ -496,18 +476,24 @@
         <div id="main-content" style="flex: 1; position: relative;">
 
             <div id="profile-tab" class="tab-content">
-                <div class="header" style="margin-top: 40px;">
-                    <h1 id="profile-name">Kullanıcı</h1>
-                    <p class="subtitle">Verimlilik Özeti</p>
+                <div class="header" style="margin-top: 20px;">
+                    <h1 id="profile-name">Yükleniyor...</h1>
+                    <p class="subtitle">Verimlilik Geçmişin</p>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 32px;">
-                    <div style="background: var(--glass-bg); padding: 24px; border-radius: 20px; text-align: center;">
-                        <span class="stat-title">Bugünkü Odaklanma</span>
-                        <div id="profile-today-work" class="stat-value"
-                            style="color: var(--dynamic-color); font-size: 28px;">00:00</div>
+                <div id="calendar-container" style="margin-top: 24px; background: #1C1C1E; padding: 16px; border-radius: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <button class="toggle-btn" id="prev-month" style="padding: 4px 12px;">&lt;&lt;</button>
+                        <h3 id="cal-month-year" style="font-size: 16px;">Nisan 2026</h3>
+                        <button class="toggle-btn" id="next-month" style="padding: 4px 12px;">&gt;&gt;</button>
                     </div>
+                    <div id="calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center;">
+                        </div>
                 </div>
-                <div id="debug-status" class="debug-status-profile" style="display:none;">Status: Ready</div>
+                <div id="day-details" style="margin-top: 20px;">
+                    <h4 id="selected-day-label" style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">Seçili Gün Detayları</h4>
+                    <div id="session-history-list" style="display: flex; flex-direction: column; gap: 8px;">
+                        </div>
+                </div>
             </div>
 
             <div id="timer-tab" class="tab-content active">
@@ -535,24 +521,16 @@
 
                 <section id="active-screen" class="screen hidden">
                     <div class="active-header"><span class="target-label">Hedef: <span
-                                id="lbl-target-time">00:00</span></span></div>
+                        id="lbl-target-time">00:00</span></span></div>
                     <div class="center-focus">
-                        <div class="progress-pill"><span id="lbl-percentage">%0</span></div>
+                        <div id="lbl-percentage" class="progress-pill progress-low">%0</div>
                         <h2 id="lbl-current-timer" class="massive-timer">00:00</h2>
-                        <p id="lbl-current-state" class="state-text">Çalışıyor</p>
+                        <p id="lbl-current-state" class="state-text" style="color: var(--dynamic-color);">Çalışıyor</p>
                     </div>
                     <div class="controls">
                         <button id="btn-toggle-state" class="btn-toggle capsule">Mola Ver</button>
                         <button id="btn-end-session" class="btn-secondary capsule">Çalışmayı Sonlandır</button>
                     </div>
-                    <footer class="glass-footer">
-                        <div class="stat-box"><span class="stat-title">İş</span>
-                            <div id="stat-work-time" class="stat-value">00:00</div>
-                        </div>
-                        <div class="stat-box"><span class="stat-title">Mola</span>
-                            <div id="stat-rest-time" class="stat-value">00:00</div>
-                        </div>
-                    </footer>
                 </section>
             </div>
 
@@ -565,7 +543,7 @@
                     <button id="btn-daily-view" class="toggle-btn active">Günlük</button>
                     <button id="btn-weekly-view" class="toggle-btn">Haftalık</button>
                 </div>
-                <div style="padding: 24px; background: #1C1C1E; border-radius: 20px;">
+                <div id="analytics-container" style="padding: 24px; background: #1C1C1E; border-radius: 20px;">
                     <span id="chart-title" class="stat-title">Günlük Analiz</span>
                     <div id="analytics-chart" class="weekly-chart" style="margin-top: 20px;"></div>
                 </div>

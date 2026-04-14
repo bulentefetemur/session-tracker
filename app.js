@@ -15,19 +15,29 @@ class Analytics {
             localStorage.setItem('trackerAnalytics', JSON.stringify(data));
         } catch(e) { console.error("Analytics Error", e); }
     }
+    static getAllData() {
+        return JSON.parse(localStorage.getItem('trackerAnalytics') || '{}');
+    }
     static getWeeklyData() {
         try {
-            const data = JSON.parse(localStorage.getItem('trackerAnalytics') || '{}');
+            const data = this.getAllData();
             const result = [];
             for(let i=6; i>=0; i--) {
                 const d = new Date();
                 d.setDate(d.getDate() - i);
                 const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
                 const dayName = d.toLocaleDateString('tr-TR', {weekday:'short'});
-                result.push({ day: dayName, work: data[key]?.work || 0, rest: data[key]?.rest || 0 });
+                result.push({ day: dayName, work: data[key]?.work || 0, rest: data[key]?.rest || 0, key: key, dateObj: d });
             }
             return result;
         } catch(e) { return []; }
+    }
+    static deleteSession(dateKey, sessionId) {
+        let data = this.getAllData();
+        if (data[dateKey] && data[dateKey].sessions) {
+            data[dateKey].sessions = data[dateKey].sessions.filter(s => s.id !== sessionId);
+            localStorage.setItem('trackerAnalytics', JSON.stringify(data));
+        }
     }
 }
 
@@ -202,6 +212,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderChart('weekly');
             });
         }
+
+        // --- PROFILE DATA DELETION ---
+        const historyList = document.getElementById('profile-history-list');
+        if (historyList) {
+            historyList.addEventListener('click', (e) => {
+                const btn = e.target.closest('.delete-btn');
+                if (btn) {
+                    const key = btn.dataset.key;
+                    if (confirm(`Bu tarihe ait veriyi silmek istediğinizden emin misiniz?`)) {
+                        let data = JSON.parse(localStorage.getItem('trackerAnalytics') || '{}');
+                        delete data[key];
+                        localStorage.setItem('trackerAnalytics', JSON.stringify(data));
+                        updateProfileStats(); // Refresh UI
+                    }
+                }
+            });
+        }
+
+        // --- CALENDAR NAVIGATION ---
+        document.getElementById('cal-prev')?.addEventListener('click', () => {
+            currentCalDate.setMonth(currentCalDate.getMonth() - 1);
+            updateProfileStats();
+        });
+        document.getElementById('cal-next')?.addEventListener('click', () => {
+            currentCalDate.setMonth(currentCalDate.getMonth() + 1);
+            updateProfileStats();
+        });
     }
 
     // --- UI HELPERS ---
@@ -223,12 +260,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateUI() {
         const s = tracker.getCurrentStats();
         document.documentElement.style.setProperty('--dynamic-color', s.state === 'resting' ? '#34C759' : '#FF9500');
-        document.getElementById('lbl-current-timer').innerText = formatTime(s.phaseElapsed);
-        document.getElementById('lbl-percentage').innerText = `%${Math.floor(s.progress || 0)}`;
+        document.getElementById('lbl-current-timer').innerText = formatTime(s.phaseElapsed, false);
+        const percentageEl = document.getElementById('lbl-percentage');
+        percentageEl.innerText = `%${Math.floor(s.progress || 0)}`;
+        
+        let progressClass = 'progress-low';
+        if (s.progress >= 70) progressClass = 'progress-high';
+        else if (s.progress >= 30) progressClass = 'progress-mid';
+        percentageEl.className = 'progress-pill ' + progressClass;
+
         document.getElementById('stat-work-time').innerText = formatTime(s.curWork);
         document.getElementById('stat-rest-time').innerText = formatTime(s.curRest);
         document.getElementById('lbl-current-state').innerText = s.state === 'working' ? 'Çalışıyor' : 'Mola Veriliyor';
-        
+        document.getElementById('lbl-target-time').innerText = formatTime(tracker.targetMs);
+
+
         Analytics.addTime(s.state === 'working' ? 'work' : 'rest', 100);
         if (document.getElementById('profile-tab').classList.contains('active')) updateProfileStats();
 
@@ -265,33 +311,128 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderChart(mode = 'daily') {
         const chart = document.getElementById('analytics-chart');
         const title = document.getElementById('chart-title');
+        const data = Analytics.getWeeklyData();
         
         if (mode === 'daily') {
-            if (title) title.innerText = "Günlük Analiz";
+            const today = data[data.length - 1];
+            const total = (today.work + today.rest) || 1;
+            const workPerc = (today.work / total) * 100;
+            if (title) title.innerText = "Bugünkü Odaklanma Oranı";
             chart.innerHTML = `
-                <div style="width: 100px; height: 100px; border-radius: 50%; border: 8px solid var(--dynamic-color); margin: 0 auto; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 14px; font-weight: 500;">
-                    Yakında
+                <div style="display:flex; flex-direction:column; align-items:center; gap:24px; width:100%; padding-top: 10px;">
+                    <div style="width:140px; height:140px; border-radius:50%; background: conic-gradient(var(--dynamic-color) 0% ${workPerc}%, #34C759 ${workPerc}% 100%); display:flex; align-items:center; justify-content:center;">
+                        <div style="width:120px; height:120px; background:#1C1C1E; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                            <span style="font-size:26px; font-weight:700; color:#FFF;">%${Math.round(workPerc)}</span>
+                            <span style="font-size:12px; color:var(--text-secondary);">Odak</span>
+                        </div>
+                    </div>
+                    <div class="daily-stats-container" style="display:flex; justify-content:space-around; width:100%;">
+                        <div class="stat-box" style="text-align:center;">
+                            <span class="stat-title" style="font-size:11px; color:var(--text-secondary); text-transform:uppercase;">Çalışma</span>
+                            <div class="stat-value" style="color:var(--dynamic-color); font-size:20px; font-weight:600; margin-top:4px;">${formatTime(today.work)}</div>
+                        </div>
+                        <div class="stat-box" style="text-align:center;">
+                            <span class="stat-title" style="font-size:11px; color:var(--text-secondary); text-transform:uppercase;">Mola</span>
+                            <div class="stat-value" style="color:#34C759; font-size:20px; font-weight:600; margin-top:4px;">${formatTime(today.rest)}</div>
+                        </div>
+                    </div>
                 </div>
             `;
         } else {
             if (title) title.innerText = "Haftalık Analiz";
-            const data = Analytics.getWeeklyData();
-            const max = Math.max(...data.map(d => d.work), 1);
-            chart.innerHTML = data.map(d => `
-                <div class="chart-col">
-                    <div class="chart-bar" style="height: ${(d.work / max) * 100}px"></div>
-                    <div class="chart-label">${d.day}</div>
+            const max = Math.max(...data.map(d => d.work + d.rest), 1);
+            chart.innerHTML = '<div class="weekly-chart" style="display:flex; justify-content:space-around; align-items:flex-end; height:140px; gap:8px; margin-top:20px;">' + data.map(d => `
+                <div class="chart-col" data-day="${d.day}" data-work="${d.work}" data-rest="${d.rest}" style="display:flex; flex-direction:column; align-items:center; flex:1; gap:8px;">
+                    <div class="stacked-bar-container" style="width:100%; display:flex; flex-direction:column-reverse; border-radius:4px; overflow:hidden; min-height:4px; background:#2c2c2e; transition:transform 0.2s ease; height: ${((d.work + d.rest) / max) * 100}%; cursor:pointer;">
+                        <div class="stacked-bar-work" style="width:100%; background:var(--dynamic-color); transition:height 0.5s; height: ${((d.work) / (d.work + d.rest || 1)) * 100}%"></div>
+                        <div class="stacked-bar-rest" style="width:100%; background:#34C759; transition:height 0.5s; height: ${((d.rest) / (d.work + d.rest || 1)) * 100}%"></div>
+                    </div>
+                    <div class="chart-label" style="font-size:10px; color:var(--text-secondary);">${d.day}</div>
                 </div>
-            `).join('');
+            `).join('') + '</div>';
+
+            document.querySelectorAll('.chart-col').forEach(col => {
+                col.addEventListener('click', () => {
+                    const day = col.dataset.day;
+                    const work = parseInt(col.dataset.work);
+                    const rest = parseInt(col.dataset.rest);
+                    title.innerText = `${day} günü: ${formatTime(work)} çalışma, ${formatTime(rest)} mola`;
+                });
+            });
         }
     }
 
+    let currentCalDate = new Date();
+    let selectedProfileDate = Analytics.getTodayKey();
+
     function updateProfileStats() {
-        const data = Analytics.getWeeklyData();
-        const today = data[data.length - 1];
+        const data = Analytics.getAllData();
+        const weeklyData = Analytics.getWeeklyData();
+        const listEl = document.getElementById('profile-history-list');
+        const calEl = document.getElementById('profile-calendar');
+        const monthYearEl = document.getElementById('cal-month-year');
+
         document.getElementById('profile-name').innerText = localStorage.getItem('trackerUserName') || "Kullanıcı";
-        document.getElementById('profile-today-work').innerText = formatTime(today.work);
-        document.getElementById('profile-week-work').innerText = formatTime(data.reduce((a,b)=>a+b.work, 0));
+        document.getElementById('profile-week-work').innerText = formatTime(weeklyData.reduce((a,b)=>a+b.work, 0));
+
+        if (calEl && monthYearEl) {
+            const year = currentCalDate.getFullYear();
+            const month = currentCalDate.getMonth();
+            monthYearEl.innerText = currentCalDate.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            let html = '';
+            const dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+            dayNames.forEach(d => html += `<div class="cal-day-header">${d}</div>`);
+            
+            const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+            
+            for (let i = 0; i < startOffset; i++) {
+                html += `<div class="cal-day-cell empty"></div>`;
+            }
+            
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                const isSelected = dateKey === selectedProfileDate;
+                const hasData = data[dateKey] && (data[dateKey].work > 0 || data[dateKey].rest > 0);
+                
+                html += `
+                    <div class="cal-day-cell ${isSelected ? 'active' : ''}" data-key="${dateKey}">
+                        ${i}
+                        ${hasData ? '<div class="cal-dot"></div>' : ''}
+                    </div>
+                `;
+            }
+            calEl.innerHTML = html;
+            
+            document.querySelectorAll('.cal-day-cell:not(.empty)').forEach(el => {
+                el.addEventListener('click', () => {
+                    selectedProfileDate = el.dataset.key;
+                    updateProfileStats();
+                });
+            });
+        }
+
+        if(listEl) {
+            const selectedDayData = data[selectedProfileDate];
+            if (!selectedDayData || (selectedDayData.work === 0 && selectedDayData.rest === 0)) {
+                listEl.innerHTML = '<div style="text-align:center; color: var(--text-secondary); margin-top: 32px; font-size: 14px;">Bu tarihte kayıt bulunmuyor.</div>';
+            } else {
+                listEl.innerHTML = `
+                    <div style="background: #1C1C1E; padding: 16px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <span style="font-weight: 600; font-size: 16px; color: #fff;">Odaklanma Seansı</span>
+                            <span style="font-size: 13px; color: var(--text-secondary);">Çalışma: <span style="color:var(--dynamic-color);">${formatTime(selectedDayData.work)}</span> &nbsp;|&nbsp; Mola: <span style="color:#34C759;">${formatTime(selectedDayData.rest)}</span></span>
+                        </div>
+                        <button class="delete-btn" data-key="${selectedProfileDate}" style="background: rgba(255, 59, 48, 0.1); border: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        </button>
+                    </div>
+                `;
+            }
+        }
     }
 
     function populatePickers() {
@@ -308,11 +449,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return Math.round(el.scrollTop / 50);
     }
 
-    function formatTime(ms) {
+    function formatTime(ms, showHoursEvenIfZero = true) {
         const s = Math.floor(ms / 1000);
         const h = Math.floor(s / 3600);
         const m = Math.floor((s % 3600) / 60);
         const sec = s % 60;
-        return h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}` : `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+        if (showHoursEvenIfZero || h > 0) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+        return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
     }
 });
