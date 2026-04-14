@@ -261,7 +261,7 @@
             color: #000;
         }
         .progress-high {
-            background-color: #34C759; /* Green */
+            background-color: var(--dynamic-color); /* Amber/Green Transition */
         }
         /* ANALYTICS CHART */
         .weekly-chart {
@@ -399,24 +399,6 @@
         }
 
         /* --- SAYAÇ VE ANALİZ BUTONLARI KESİN ÇÖZÜM --- */
-        .time-picker-container {
-            position: relative;
-            display: flex;
-            justify-content: center; /* Tam merkezleme */
-            align-items: center;
-            gap: 12px;
-            background: #1C1C1E;
-            padding: 16px 0;
-            border-radius: 24px;
-            overflow: hidden; /* Sayıların aşağı akmasını engeller */
-            height: 200px;    /* Çarkın yüksekliğini sabitler */
-            margin: 30px auto;
-            width: 100%;
-            max-width: 340px;
-            -webkit-mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 60%, transparent 95%);
-            mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 60%, transparent 95%);
-        }
-
         .picker-column {
             height: 150px;
             width: 60px;
@@ -530,6 +512,14 @@
                     <div class="controls">
                         <button id="btn-toggle-state" class="btn-toggle capsule">Mola Ver</button>
                         <button id="btn-end-session" class="btn-secondary capsule">Çalışmayı Sonlandır</button>
+                    </div>
+                    <div id="session-segments-container" style="margin-top: 24px; padding-bottom: 120px; overflow-y: auto; flex: 1; width: 100%; max-width: 340px; margin-left: auto; margin-right: auto;">
+                        <div id="segment-summary" style="background: #1C1C1E; padding: 12px; border-radius: 12px; text-align: center; font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                            Toplam İş: 00:00:00 (%0) | Toplam Mola: 00:00:00 (%0)
+                        </div>
+                        <div id="segment-list" style="display: flex; flex-direction: column; gap: 8px;">
+                            <!-- JS populated -->
+                        </div>
                     </div>
                 </section>
             </div>

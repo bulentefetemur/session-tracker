@@ -57,10 +57,13 @@ class SessionTracker {
         this.notifiedRest15 = false;
         this.notifiedRest30 = false;
         this.targetReached = false;
+        this.segments = [];
+        this.lastSavedTime = Date.now();
         this.save();
     }
     save() {
-        const data = { state: this.state, targetMs: this.targetMs, totalWorkMs: this.totalWorkMs, totalRestMs: this.totalRestMs, phaseStartTime: this.phaseStartTime };
+        this.lastSavedTime = Date.now();
+        const data = { state: this.state, targetMs: this.targetMs, totalWorkMs: this.totalWorkMs, totalRestMs: this.totalRestMs, phaseStartTime: this.phaseStartTime, lastSavedTime: this.lastSavedTime, segments: this.segments };
         localStorage.setItem('sessionData', JSON.stringify(data));
     }
     load() {
@@ -68,6 +71,11 @@ class SessionTracker {
         if (data) {
             const p = JSON.parse(data);
             Object.assign(this, p);
+            if (!this.segments) this.segments = [];
+            if (this.state === 'resting' && this.lastSavedTime) {
+                const offlineMs = Date.now() - this.lastSavedTime;
+                this.phaseStartTime += offlineMs;
+            }
             return true;
         }
         return false;
@@ -78,11 +86,14 @@ class SessionTracker {
         this.notifiedRest15 = false;
         this.notifiedRest30 = false;
         this.targetReached = false;
+        this.segments = [];
+        this.lastSavedTime = Date.now();
         localStorage.removeItem('sessionData');
     }
     toggleState() {
         if (this.state === 'idle') return;
         const elapsed = Date.now() - this.phaseStartTime;
+        this.segments.push({ type: this.state, duration: elapsed });
         if (this.state === 'working') { this.totalWorkMs += elapsed; this.state = 'resting'; }
         else { this.totalRestMs += elapsed; this.state = 'working'; }
         this.phaseStartTime = Date.now();
@@ -241,6 +252,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+         document.addEventListener('visibilitychange', () => {
+            if (tracker && tracker.state !== 'idle') {
+                if (document.visibilityState === 'hidden') {
+                    tracker.save();
+                } else if (document.visibilityState === 'visible') {
+                    if (tracker.state === 'resting') {
+                        const offlineMs = Date.now() - tracker.lastSavedTime;
+                        tracker.phaseStartTime += offlineMs;
+                        tracker.save();
+                    }
+                }
+            }
+        });
+    }
+
     // --- UI HELPERS ---
     async function fireNotification(title, body) {
         if (!("Notification" in window) || Notification.permission !== "granted") return;
@@ -260,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateUI() {
         const s = tracker.getCurrentStats();
         document.documentElement.style.setProperty('--dynamic-color', s.state === 'resting' ? '#34C759' : '#FF9500');
-        document.getElementById('lbl-current-timer').innerText = formatTime(s.phaseElapsed, false);
+        document.getElementById('lbl-current-timer').innerText = formatTime(s.phaseElapsed, true);
         const percentageEl = document.getElementById('lbl-percentage');
         percentageEl.innerText = `%${Math.floor(s.progress || 0)}`;
         
@@ -269,17 +295,55 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (s.progress >= 30) progressClass = 'progress-mid';
         percentageEl.className = 'progress-pill ' + progressClass;
 
-        document.getElementById('stat-work-time').innerText = formatTime(s.curWork);
-        document.getElementById('stat-rest-time').innerText = formatTime(s.curRest);
         document.getElementById('lbl-current-state').innerText = s.state === 'working' ? 'Çalışıyor' : 'Mola Veriliyor';
-        document.getElementById('lbl-target-time').innerText = formatTime(tracker.targetMs);
+        document.getElementById('lbl-target-time').innerText = formatTime(tracker.targetMs, true);
 
+        // --- SEGMENT LIST & SUMMARY ---
+        const summaryEl = document.getElementById('segment-summary');
+        const listEl = document.getElementById('segment-list');
+        if (summaryEl && listEl) {
+            const totalMs = (s.curWork + s.curRest) || 1;
+            const workPerc = Math.round((s.curWork / totalMs) * 100);
+            const restPerc = Math.round((s.curRest / totalMs) * 100);
+            summaryEl.innerHTML = `Toplam İş: <span style="color:var(--dynamic-color);">${formatTime(s.curWork, true)}</span> (%${workPerc}) | Toplam Mola: <span style="color:#34C759;">${formatTime(s.curRest, true)}</span> (%${restPerc})`;
+            
+            const allSegments = [...tracker.segments, { type: s.state, duration: s.phaseElapsed }];
+            let workCount = 0;
+            let restCount = 0;
+            
+            listEl.innerHTML = allSegments.map(seg => {
+                let name = "";
+                let color = "";
+                if (seg.type === 'working') {
+                    workCount++;
+                    name = `${workCount}. Oturum`;
+                    color = 'var(--dynamic-color)';
+                } else {
+                    restCount++;
+                    name = `${restCount}. Mola`;
+                    color = '#34C759';
+                }
+                return `
+                    <div style="background: #1C1C1E; padding: 12px 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid ${color};">
+                        <span style="font-weight: 500; font-size: 15px; color: #FFF;">${name}</span>
+                        <span style="font-variant-numeric: tabular-nums; color: var(--text-secondary);">${formatTime(seg.duration, true)}</span>
+                    </div>
+                `;
+            }).reverse().join('');
+        }
 
         Analytics.addTime(s.state === 'working' ? 'work' : 'rest', 100);
         if (document.getElementById('profile-tab').classList.contains('active')) updateProfileStats();
 
         if (s.justReachedTarget) {
-            fireNotification("Hedefe Ulaşıldı! 🎉", "Belirlediğiniz çalışma süresini tamamladınız. Harika iş çıkardınız!");
+            const userName = localStorage.getItem('trackerUserName') || "Şampiyon";
+            const h = Math.floor(tracker.targetMs / 3600000);
+            const m = Math.floor((tracker.targetMs % 3600000) / 60000);
+            let targetText = "";
+            if (h > 0) targetText += `${h} saat `;
+            if (m > 0) targetText += `${m} dakika`;
+            targetText = targetText.trim() || "Belirlenen";
+            fireNotification("Hedefe Ulaşıldı! 🎉", `Harika bir iş çıkardın, ${userName}! ${targetText} hedefini tamamladın. Şimdi dinlenme vakti! 🎉`);
         }
         if (s.triggerWork60) {
             fireNotification("Harika gidiyorsun! ☕", "Bir saati devirdin. Kısa bir mola zihni tazeler, hadi bir kahve al!");
