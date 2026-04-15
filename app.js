@@ -105,15 +105,23 @@ function initAppFlow() {
     document.getElementById('btn-login-action').onclick = async () => {
         const name = document.getElementById('username-input').value.trim();
         if (!name) return alert("Lütfen bir isim girin.");
+    
         localStorage.setItem('trackerUserName', name);
         document.getElementById('loading-overlay').style.display = 'flex';
-        
+    
+        // iOS için çifte izin isteme
+        if (typeof Notification !== 'undefined') {
+            await Notification.requestPermission();
+        }
+
         if (window.OneSignalDeferred) {
-            window.OneSignalDeferred.push(async (OS) => {
-                await OS.login(name);
-                await OS.User.PushSubscription.optIn();
+            window.OneSignalDeferred.push(async function(OneSignal) {
+                await OneSignal.login(name);
+                await OneSignal.Notifications.requestPermission(); // OneSignal üzerinden izin iste
+                await OneSignal.User.PushSubscription.optIn();
             });
         }
+
         setTimeout(() => showApp(name), 1500);
     };
 }
@@ -170,12 +178,41 @@ function startUIUpdate() {
 }
 
 async function fireNotification(title, body) {
-    if (window.OneSignalDeferred) {
-        window.OneSignalDeferred.push(async (OS) => {
-            await OS.User.addTag("trigger", String(Date.now()));
-            // iOS Foreground Banner Force
-            if (OS.Notifications && OS.Notifications.displaySelfHostedPrompt) await OS.Notifications.displaySelfHostedPrompt();
+    console.log(`[Notification Triggered] ${title}: ${body}`);
+    
+    // 1. Yol: OneSignal üzerinden (Sunucu taraflı tetikleme için tag gönderir)
+    if (window.OneSignal) {
+        OneSignal.push(function() {
+            OneSignal.User.addTag("last_notif_title", title);
+            OneSignal.User.addTag("last_notif_time", String(Date.now()));
         });
+    }
+
+    // 2. Yol: iOS PWA Yerel Bildirim (En garantici yol)
+    if (!("Notification" in window)) return;
+    
+    if (Notification.permission === "granted") {
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            if (reg && reg.showNotification) {
+                await reg.showNotification(title, {
+                    body: body,
+                    icon: "./session_tracker.png",
+                    badge: "./session_tracker.png",
+                    vibrate: [200, 100, 200],
+                    tag: 'session-alert', // Üst üste binmeyi engeller
+                    renotify: true
+                });
+            } else {
+                new Notification(title, { body: body, icon: "./session_tracker.png" });
+            }
+        } catch (err) {
+            console.error("Local Notif Error:", err);
+            new Notification(title, { body: body, icon: "./session_tracker.png" });
+        }
+    } else if (Notification.permission !== "denied") {
+        // İzin yoksa tekrar iste (Kritik: iOS bazen ilk izni unutur)
+        Notification.requestPermission();
     }
 }
 
